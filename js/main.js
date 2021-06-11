@@ -75,7 +75,7 @@ const mainScreen = scene('main', () => {
 
     action('player-building', (b) => {
 
-        if (b.highlighted){
+        if (b.isHighlighted){
             b.color.r = 1;
         }
         else{
@@ -127,7 +127,7 @@ const mainScreen = scene('main', () => {
 
         unitInSight.push(p);
 
-        s.parent.targetAcquired = true;
+        s.parent.hasTarget = true;
         s.parent.currentTarget = p;
         // messages.text = s.parent.speed;
     });
@@ -204,7 +204,7 @@ const mainScreen = scene('main', () => {
 
                 console.log('shooting at target');
 
-                status2.text = 'Firing'
+                status2.text = 'isFiring'
                 u.shoot(u);
                 u.readyToFire = false;
                 
@@ -278,7 +278,7 @@ const mainScreen = scene('main', () => {
                 
                 for (let i of selectedUnits) {
                     i.selected = true;
-                    i.highlighted = true;
+                    i.isHighlighted = true;
                 }
                 selectionSet = true;
             }
@@ -345,21 +345,17 @@ const mainScreen = scene('main', () => {
     const moveUnits = function(i, mx, my){
         i.destinationX = mx;
         i.destinationY = my;
-        i.moving = true;
+        i.isMoving = true;
     }
 
     // Cancel current unit selection.
     keyPress('c', () => {
         const temp = selectedUnits.slice()
         for(let i of temp){
-            i.highlighted = false;
+            i.isHighlighted = false;
             i.selected = false;
             selectedUnits.pop()
-            
         }
-        
-
-
         messages.text = 'Selection canceled'
     });
 
@@ -396,21 +392,21 @@ const mainScreen = scene('main', () => {
         }
 
 
-        if (u.highlighted){
+        if (u.isHighlighted){
             u.color.r = 1;
         }
         else{
             u.color.r = 0;
         }
 
-        if (u.moving){
+        if (u.isMoving){
 
             moveVecX = Math.floor(u.destinationX - u.pos.x);
             moveVecY = Math.floor(u.destinationY - u.pos.y);
 
             if (Math.abs(moveVecX) < 10) {
                 if (Math.abs(moveVecY) < 10) {
-                    u.moving = false;
+                    u.isMoving = false;
                     return false;
                 }
             }
@@ -449,12 +445,12 @@ const mainScreen = scene('main', () => {
 
             if(distance < d){
                 e.move(60, 0);
-                // console.log('moving right');
+                // console.log('isMoving right');
             }
             
             else if(distance < d * 2){
                 e.move(-60, 0);
-                // console.log('moving left');    
+                // console.log('isMoving left');    
             }
     
             else distance = 0;

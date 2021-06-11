@@ -8,7 +8,7 @@ export const constructBuilding = function(xPos, yPos, tag, width = 30, height = 
         {
             gate_x: 380,
             gate_y: 430,
-            highlighted: false,
+            isHighlighted: false,
         }
     ]);
 

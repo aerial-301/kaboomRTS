@@ -43,12 +43,12 @@ export class Unit{
                 health: 10,
                 speed: 300,
                 selected: false,
-                highlighted: false,
-                moving: true,
+                isHighlighted: false,
+                isMoving: true,
                 destinationX: xPos - rand(20, 40),
                 destinationY: yPos + rand(-20, 20),
-                targetAcquired: false,
-                firing: false,
+                hasTarget: false,
+                isFiring: false,
                 readyToFire: true,
                 currentTarget: null,
                 sightOwner: tag,
@@ -162,12 +162,12 @@ export const genUnit = function(xPos, yPos, tag){
     {
         speed: 300,
         selected: false,
-        highlighted: false,
-        moving: false,
+        isHighlighted: false,
+        isMoving: false,
         destinationX: xPos - rand(20, 40),
         destinationY: yPos + rand(-20, 20),
 
-        targetAcquired: false,
+        hasTarget: false,
         targetX: null,
         targetY: null
     }
