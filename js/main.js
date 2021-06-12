@@ -4,15 +4,19 @@ import Building from './building.js';
 import Unit from './troops/units.js';
 
 const k = kaboom({  global: true, 
-                    width: 440, 
-                    height: 574, 
-                    debug: true,
-                    crisp: true,
+                    // width: 440, 
+                    // height: 574,
+                    clearColor: [0, 0, 0, 1], // background color (default black [0, 0, 0, 1])
+                    width:1260,
+                    height: 570,
+                    // debug: true,
+                    // crisp: true,
                 });
 
 loadSound("shoot", "./assets/GunShot1.ogg");
-
-
+loadSprite("terrain", "./assets/GroundTerrain.jpeg");
+loadSprite("BottomPanel", "./assets/BottomPanel.jpeg");
+loadSprite("TopFrame", "./assets/TopFrame.jpeg");
 
 scene('root', () => {
 
@@ -29,29 +33,19 @@ scene('root', () => {
 
         go('main');
     });
-
-
 });
 
 
 const mainScreen = scene('main', () => {
 
-
-    // layers([
-    //     "ground", "obj", "ui",
-    // ], "obj");
-    
-
     layers([
         "obj", "ui",
     ], "obj");
     
-
     camIgnore([ "ui", ]);
     
     let moveVecX, moveVecY, mousePosX, mousePosY, mag, moveX, moveY;
     let mainTB;
-    let troobsBuilding = false;
     let goldAmount = 1000;
     let oilAmount = 1000;
     let rectPosSet = false;
@@ -62,15 +56,29 @@ const mainScreen = scene('main', () => {
     let placingBuilding = false;
     const unitsSpacingX = 80; 
     const unitsSpacingY = 10;
-
-
-    let groups = [];
-
-
     const bottomPanelHeight = 120;
+    const topFrameHeight = 40;
+    let groups = [[],[],[]];
 
-    let oldMouseIsSet = false;
-    // Mouse events
+    on('add', 'player-unit', (u) =>{
+        wait(0.5, () => {
+
+            u.newsight.paused = true;
+            u.newsight.hidden = true;
+        })
+        
+    });
+
+    on('add', 'enemy-unit', (u) =>{
+        wait(0.5, () => {
+            u.newsight.paused = true;
+            u.newsight.hidden = true;
+        })
+        
+    });
+
+    ///////////////////////////////////
+    /// Mouse events
 
     const MouseDown = async () => {
 
@@ -105,8 +113,7 @@ const mainScreen = scene('main', () => {
         const finalSelection = add([
             rect(selection.width, selection.height),
             pos(selection.pos.x, selection.pos.y),
-            color(0, 0, 0, 0.2),
-            // layer('obj'),
+            color(0, 0, 0, 0),
             'selection-box',
         ]);
 
@@ -129,11 +136,16 @@ const mainScreen = scene('main', () => {
 
     const GroundIsClicked = async () => {
 
-
         // status2.text = `${mousePos('ui').x}, ${mousePos('ui').y}`
 
+        // console.log(mainTB);
+        
+        // console.log(placingBuilding);
+
+
         if(mousePos('ui').y >= k.height() - bottomPanelHeight) return false;
-        console.log('clicked')
+        if(mousePos('ui').y <= topFrameHeight) return false;
+
         if (selectionSet) {
 
             mousePosY = Math.floor(mousePos().y);
@@ -141,24 +153,16 @@ const mainScreen = scene('main', () => {
             const len = selectedUnits.length;
             const size = Math.floor(Math.sqrt(len));
 
-
-
             for (let i in selectedUnits) {
-
-                // console.log('move order');
-
                 moveX = 5 + mousePosX + i * unitsSpacingX ** (size / len);
                 moveY = mousePosY + (i % size) * unitsSpacingY;
                 moveUnits(selectedUnits[i],
                     moveX,
                     moveY);
             }
-
-
-
         }
 
-
+        
         else if (placingBuilding) {
 
             placingBuilding = false;
@@ -166,20 +170,22 @@ const mainScreen = scene('main', () => {
             mainTB = new Building(mousePos().x, mousePos().y, 'player-building');
             
             // await wait(0.5);
-
+            console.log('mainTB', mainTB)
+            console.log('mainTB.building', mainTB.building)
             mainTB.building.clicks(() => {
                 if (!selectedUnits.includes(mainTB.building)) {
                     selectedUnits.push(mainTB.building);
                 }
             });
-            troobsBuilding = true;
+            // troobsBuilding = true;
             messages.text = 'Construction Complete';
             // mainTB = troopB;
             
         }
 
-    };
+        // console.log(mainTB.exists());
 
+    };
 
     action("player-unit", async (unit) => {
 
@@ -187,13 +193,11 @@ const mainScreen = scene('main', () => {
             unit.sightToggled = true
 
             unit.toggleSight(unit);
-            // console.log('action end');
             await wait(choose([1,2]));
             unit.sightToggled = false;
         }
         
     });
-
 
     action("enemy-unit", async (unit) => {
 
@@ -236,8 +240,6 @@ const mainScreen = scene('main', () => {
 
         await wait(0.2);
 
-
-
         if (u.currentTarget) {
 
             if (!u.currentTarget.exists()) {
@@ -256,11 +258,7 @@ const mainScreen = scene('main', () => {
                 });
 
             }
-
         }
-        // else {
-            // status2.text = 'scanning';
-        // }
     };
 
     const PlayerAction = async (u) => {
@@ -321,23 +319,32 @@ const mainScreen = scene('main', () => {
 
     };
 
-
-
     const ground = add([
         // rect(k.width() - 28, k.height() - 140),
-        rect(1500, 1500),
+        rect(1400, 900),
+        sprite('terrain'),
+        
+        
         pos( 14, 34),
-        color(0.2, 0.2, 0.2),
+        color(.6, .6, .6, 1),
         layer('obj'),
-        // 'ground',
     ]);
 
     const bottomPanel = add([
         rect(k.width(), bottomPanelHeight),
         pos(0,k.height() - bottomPanelHeight),
-        color(0,0,0),
+        sprite('BottomPanel'),
+        color(1,1,1,1),
         layer('ui'),
     ])
+
+    const topFrame = add([
+        rect(k.width(), topFrameHeight),
+        pos(0,0),
+        sprite('TopFrame'),
+        color(1,1,1,1),
+        layer('ui'),
+    ]);
 
     const resourcesDisplay = add([
         text(`Gold: ${goldAmount}     Oil: ${oilAmount}`, 12),
@@ -381,30 +388,23 @@ const mainScreen = scene('main', () => {
     let eSpawned = false;
 
 
-    b2.ref.clicks( () => {
+    b2.ref.clicks( async () => {
 
         try {
             if(mainTB.building.exists()){
                 messages.text = 'Build limit reached'
             }
             else {
-                // await wait(0.1);
+                await wait(0.1);
                 placingBuilding = true;
                 messages.text = 'choose location';
             }
         } catch (error) {
-            // await wait(0.1);
             placingBuilding = true;
             messages.text = 'choose location';
         }
 
-
-        // const bluePrint = add([
-        //     rect(30, 30),
-        //     color(1, 1, 1, 0.2),
-        //     pos(0, 0),
-
-        // ]);
+        // TODO: Building blueprint
 
     });
 
@@ -426,11 +426,12 @@ const mainScreen = scene('main', () => {
     });
 
 
-
-
     action('enemy-building', async (b) => {
 
         status3.text = debug.fps();
+
+        // TODO: enemy building logic
+
         // if(!eSpawned){
 
         //     eSpawned = true;
@@ -445,8 +446,6 @@ const mainScreen = scene('main', () => {
 
     });
 
-
-    
 
     overlaps('enemy-sight', 'player-unit', (s, p) =>{
 
@@ -469,13 +468,11 @@ const mainScreen = scene('main', () => {
         s.parent.hasTarget = true;
     });
 
-
     action('Killable', (u) =>{
         if(u.health <= 0){
             destroy(u);
         }
     })
-
 
     action('enemy-sight', EnemySight);
 
@@ -485,19 +482,10 @@ const mainScreen = scene('main', () => {
 
     action('player-unit', PlayerAction);
 
-    let oneTimeRun = false;
-    let oneTimeRun2 = false
-
-    keyPress('b', () => {
-        oneTimeRun = false;
-        oneTimeRun2 = false;
-    })
-
     const selection = add([
         rect(0, 0),
         color(1, 1, 1, 0.2),
         pos(0, 0),
-        // layer("obj"),
     ]);
 
     overlaps('selection-box', 'player-unit', (e, u) =>{
@@ -564,20 +552,9 @@ const mainScreen = scene('main', () => {
                 moveVecX = (moveVecX / mag) * 70;
                 moveVecY = (moveVecY / mag) * 70;
                 e.move(moveVecX, moveVecY);
-
-
-
-                
-
             }
-
         }
-
     });
-
-
-
-
 
     function cancelSelection(){
 
@@ -593,8 +570,56 @@ const mainScreen = scene('main', () => {
     }
 
 
+    ///////////////////////////////////////////////
+    /// KeyPress Events
 
-    // Cancel current selection.
+    let camPosX = 1100;
+    let camPosY = 815;
+
+    let camS = 1;
+
+    action(() => {
+
+        camScale(camS)// = camScale;
+
+        camPos(camPosX, camPosY)
+        status.text = `${camPos().x}, ${camPos().y}`;
+
+        if(keyIsDown('w')){
+            camPosY -= 10;
+        }
+        if(keyIsDown('s')){
+            camPosY += 10;
+        }
+        if(keyIsDown('a')){
+            camPosX -= 10;
+        }
+        if(keyIsDown('d')){
+            camPosX += 10;
+        }
+        if(keyIsDown('q')){
+            camS *= 0.99;
+        }
+        if(keyIsDown('e')){
+            camS *= 1.01;
+        }
+
+        
+    })
+
+
+    keyPress('r', () => {
+        camS = 1;
+    });
+
+
+    keyPress('s', () =>{
+        console.log(camPos().y)
+
+        camPos(mousePos())
+    });
+
+
     keyPress('c', () => {
         cancelSelection();
     });
@@ -604,55 +629,6 @@ const mainScreen = scene('main', () => {
         debug.paused = !debug.paused;
     });
 
-    keyPress('w', () =>{
-        console.log(camPos().y)
-
-        camPos().y -= 10
-    });
-
-    keyPress('s', () =>{
-        console.log(camPos().y)
-
-        camPos(mousePos())
-    });
-
-    on('add', 'player-unit', (u) =>{
-        wait(0.5, () => {
-
-            u.newsight.paused = true;
-            u.newsight.hidden = true;
-        })
-        
-    });
-
-    on('add', 'enemy-unit', (u) =>{
-        wait(0.5, () => {
-            u.newsight.paused = true;
-            u.newsight.hidden = true;
-        })
-        
-    });
-
-
-    keyPress('h', () => {
-
-        const a = get('player-sight');
-
-        console.log(a.paused)
-
-        for(let i of a){
-            // console.log(i);
-            // i.hidden = true;
-            i.paused = false;
-            i.hidden = false;
-
-            wait(0.1, () =>{
-                i.paused = true;
-                i.hidden = true;
-            })
-        }
-
-    });
 
     keyPress('1', () => {
         if(keyIsDown('control')){
@@ -723,14 +699,48 @@ const mainScreen = scene('main', () => {
 
 
     //////////////////////////////////////////////
-    // DEBUG
+    /// DEBUG
 
-    keyPress('r', () =>{
+
+    let oneTimeRun = false;
+    let oneTimeRun2 = false;
+
+    keyPress('b', () => {
+        oneTimeRun = false;
+        oneTimeRun2 = false;
+    })
+
+
+    keyPress('h', () => {
+
+        const a = get('player-sight');
+
+        console.log(a.paused)
+
+        for(let i of a){
+            // console.log(i);
+            // i.hidden = true;
+            i.paused = false;
+            i.hidden = false;
+
+            wait(0.1, () =>{
+                i.paused = true;
+                i.hidden = true;
+            })
+        }
+
+    });
+
+    keyPress('.', () =>{
         if(selectedUnits.length > 0){
             for(let i of selectedUnits){
+                console.log('i = ', i );
                 destroy(i);
+                console.log('i = ', i);
+                console.log('ib = ', i.exists());
             }
             selectedUnits = [];
+            selectionSet = false
         }
     });
 

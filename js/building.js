@@ -16,7 +16,7 @@ export default class Building {
             tag,
             'Killable',
             {   
-                health: 1000,
+                health: 100,
                 gate_x: 380,
                 gate_y: 430,
                 isHighlighted: false,
