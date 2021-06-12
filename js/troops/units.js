@@ -2,10 +2,7 @@ export default class Unit{
 
     constructor(xPos, yPos, tag, sWidth = 140, sight = null){
 
-        // let c;
-
         let oC
-
         this.xPos = xPos;
         this.yPos = yPos;
         this.tag = tag;
@@ -14,7 +11,6 @@ export default class Unit{
         this.xSight = xPos - (sWidth/2) + 2.5;
         this.ySight = yPos - (sWidth/2) + 2.5;
         
-
         if (tag == 'enemy-unit'){
             this.c = [.5,.2,.2,1];
             // c = [.7,.2,.2,1];
@@ -37,7 +33,6 @@ export default class Unit{
             'Killable',
         
             {   
-                // c: this.c,
                 health: 25,
                 speed: 300,
                 selected: false,
@@ -53,9 +48,11 @@ export default class Unit{
                 getSight: this.getSight,
                 shoot: this.shoot,
                 moveSight: this.moveSight,
+                toggleSight: this.toggleSight,
                 xOrigin: 0,
                 yOrigin: 0,
                 isIdle: false,
+                sightToggled: false,
                 
             }
         ]);
@@ -72,43 +69,49 @@ export default class Unit{
         }
         else sTag = 'enemy-sight';
 
-        // console.log('getSight')
-
         const s = add([
 
             rect(140, 140),
-            // color(1, 1, 0, 0.07),
             color(0,0,0,0),
             pos(e.props.pos.x - 72.5, e.props.pos.y - 72.5),
+            
             sTag,
             {
                 parent: e,
                 inSight: [],
+                moved: false,
+                toggle: false,
 
             }
 
         ]);
 
         e.props.use({newsight: s});
-        // console.log('sight added')
     }
 
 
     moveSight(u){
 
-        // console.log('moveSight')
         if(!u) return false;
-
         u.newsight.pos.x = u.pos.x - 66;
         u.newsight.pos.y = u.pos.y - 70;
 
     }
 
+
+    async toggleSight(u){
+        u.newsight.paused = false;
+        await wait(0.001);
+        u.newsight.paused = true;
+    }
+
+    removeSight(u){
+        destroy(u.newsight);
+    }
+
     async shoot(u){
 
-
         if(!u || u.currentTarget == null || !u.currentTarget.exists()) return false
-
 
         play("shoot", {
             volume: 1.0,
@@ -120,9 +123,9 @@ export default class Unit{
         u.color.g = 1;
         u.color.b = 1;
         
-        u.currentTarget.health -= 5;
+        u.currentTarget.health -= 7;
 
-        await wait(0.15, () => {
+        await wait(0.05, () => {
 
             if(u.sightOwner == 'enemy-unit'){
                 u.color.r = .5;
@@ -133,9 +136,7 @@ export default class Unit{
                 u.color.r = .2;
                 u.color.g = .5; 
                 u.color.b = .2;
-                
             }
-
         })
     }
 }

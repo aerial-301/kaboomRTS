@@ -9,28 +9,21 @@ export default class Button {
         this.t = t;
         this.w = w;
         this.h = h;
-        // this.f_size = f_size;
         this.left_p = left_p;
         this.top_p = top_p;
-
-        
-
         this.ref = add([
             rect(w, h ),
             pos(x, y),
             color(0.2, 0.3, 1),
+            layer('ui'),
         ]);
 
         add([
+            layer('ui'),
             text(t, f_size, {
                 width: w,
-                
             }),
-            
             pos(x + left_p, y + top_p),
         ]);
-
     }
-    
-
 }

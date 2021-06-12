@@ -1,28 +1,28 @@
-export const constructBuilding = function(xPos, yPos, tag, width = 30, height = 30){
+export default class Building {
 
-    let c;
+    constructor(xPos, yPos, tag, width = 30, height = 30){
 
-    if(tag == 'player-building'){
-        c = [0.2, 1, 0.2, 1];
-    }
-    else c = [1, 0.3, 0.3, 1];
+        let c;
 
-
-    const tb = add([
-        rect(width, height),
-        pos(xPos, yPos),
-        color(c),
-        tag,
-        'Killable',
-        {   
-            health: 1000,
-            gate_x: 380,
-            gate_y: 430,
-            isHighlighted: false,
+        if(tag == 'player-building'){
+            c = [0.2, 1, 0.2, 1];
         }
-    ]);
+        else c = [1, 0.3, 0.3, 1];
 
-    return tb;
+        this.building = add([
+            rect(width, height),
+            pos(xPos, yPos),
+            color(c),
+            tag,
+            'Killable',
+            {   
+                health: 1000,
+                gate_x: 380,
+                gate_y: 430,
+                isHighlighted: false,
+            }
+        ]);
+
+    }
+
 }
-
-export default constructBuilding;

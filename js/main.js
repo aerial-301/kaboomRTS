@@ -3,13 +3,17 @@ import Button from './buttons.js';
 import Building from './building.js';
 import Unit from './troops/units.js';
 
-const k = kaboom({global: true, width: 440, height: 574});
+const k = kaboom({  global: true, 
+                    width: 440, 
+                    height: 574, 
+                    debug: true,
+                    crisp: true,
+                });
 
 loadSound("shoot", "./assets/GunShot1.ogg");
 
-// layers([
-//     "ground", "obj", "ui",
-// ], "obj");
+
+
 scene('root', () => {
 
     const rootBackGround = add([
@@ -31,8 +35,23 @@ scene('root', () => {
 
 
 const mainScreen = scene('main', () => {
+
+
+    // layers([
+    //     "ground", "obj", "ui",
+    // ], "obj");
     
-    let moveVecX, moveVecY, mousePosX, mousePosY, mag, moveX, moveY, mainTB;
+
+    layers([
+        "obj", "ui",
+    ], "obj");
+    
+
+    camIgnore([ "ui", ]);
+    
+    let moveVecX, moveVecY, mousePosX, mousePosY, mag, moveX, moveY;
+    let mainTB;
+    let troobsBuilding = false;
     let goldAmount = 1000;
     let oilAmount = 1000;
     let rectPosSet = false;
@@ -42,11 +61,24 @@ const mainScreen = scene('main', () => {
     let selectionSet = false;  
     let placingBuilding = false;
     const unitsSpacingX = 80; 
-    const unitsSpacingY = 10; 
+    const unitsSpacingY = 10;
 
-    const MouseDown = () => {
+
+    let groups = [];
+
+
+    const bottomPanelHeight = 120;
+
+    let oldMouseIsSet = false;
+    // Mouse events
+
+    const MouseDown = async () => {
+
+        await wait(0.01);
 
         if (mousePos().x == oldMousePosX && mousePos().y == oldMousePosY) {
+
+            // console.log('no mouse drag')
             return false;
         }
 
@@ -68,61 +100,6 @@ const mainScreen = scene('main', () => {
         oldMousePosY = mousePos().y;
     };
 
-    const EnemySight = (sight) => {
-
-        // status.text = `${sight.inSight.length} units in sight`;
-
-        if (sight.inSight.length > 0) {
-            sight.inSight = sight.inSight.filter(unit => unit.exists() == true);
-            sight.inSight = sight.inSight.filter(unit => unit.isOverlapped(sight) == true);
-            // status.text = `${sight.inSight.length} units in sight`;
-
-            if (sight.parent.props.currentTarget != sight.inSight[0]) {
-                // console.log(sight.parent.currentTarget);
-                sight.parent.props.currentTarget = sight.inSight[0];
-            }
-
-            // sight.parent.shoot(sight.parent);
-            if (!oneTimeRun2) {
-                // console.log('sight.parent.props.currentTarget = ', sight.parent.props.currentTarget);
-                oneTimeRun2 = true;
-            }
-
-        }
-        else {
-            sight.parent.props.currentTarget = null;
-            sight.parent.moveSight(sight.parent.props);
-            // console.log(sight.parent)
-        }
-
-    };
-
-    const EnemyUnits = (u) => {
-
-        if (u.currentTarget) {
-
-            if (!u.currentTarget.exists()) {
-                u.currentTarget = null;
-                return false;
-            }
-
-            if (u.readyToFire) {
-                u.readyToFire = false;
-
-                u.shoot(u);  
-
-                wait(1, () => {
-                    u.readyToFire = true;
-                });
-
-            }
-
-        }
-        // else {
-            // status2.text = 'scanning';
-        // }
-    };
-
     const MouseRelease = () => {
 
         const finalSelection = add([
@@ -135,7 +112,7 @@ const mainScreen = scene('main', () => {
 
         selection.width = selection.height = 0;
 
-        wait(0.03, () => {
+        wait(0.1, () => {
             if (selectedUnits.length > 0) {
                 messages.text = `${selectedUnits.length} units selected`;
 
@@ -150,8 +127,13 @@ const mainScreen = scene('main', () => {
         rectPosSet = false;
     };
 
-    const GroundIsClicked = () => {
+    const GroundIsClicked = async () => {
 
+
+        // status2.text = `${mousePos('ui').x}, ${mousePos('ui').y}`
+
+        if(mousePos('ui').y >= k.height() - bottomPanelHeight) return false;
+        console.log('clicked')
         if (selectionSet) {
 
             mousePosY = Math.floor(mousePos().y);
@@ -159,7 +141,11 @@ const mainScreen = scene('main', () => {
             const len = selectedUnits.length;
             const size = Math.floor(Math.sqrt(len));
 
+
+
             for (let i in selectedUnits) {
+
+                // console.log('move order');
 
                 moveX = 5 + mousePosX + i * unitsSpacingX ** (size / len);
                 moveY = mousePosY + (i % size) * unitsSpacingY;
@@ -167,24 +153,117 @@ const mainScreen = scene('main', () => {
                     moveX,
                     moveY);
             }
+
+
+
         }
 
 
-        if (placingBuilding) {
+        else if (placingBuilding) {
 
-            const troopB = Building(mousePos().x, mousePos().y, 'player-building');
-            troopB.clicks(() => {
-                if (!selectedUnits.includes(troopB)) {
-                    selectedUnits.push(troopB);
+            placingBuilding = false;
+
+            mainTB = new Building(mousePos().x, mousePos().y, 'player-building');
+            
+            // await wait(0.5);
+
+            mainTB.building.clicks(() => {
+                if (!selectedUnits.includes(mainTB.building)) {
+                    selectedUnits.push(mainTB.building);
                 }
             });
-            mainTB = troopB;
-            placingBuilding = false;
+            troobsBuilding = true;
+            messages.text = 'Construction Complete';
+            // mainTB = troopB;
+            
         }
 
     };
 
-    const PlayerAction = (u) => {
+
+    action("player-unit", async (unit) => {
+
+        if(!unit.sightToggled){
+            unit.sightToggled = true
+
+            unit.toggleSight(unit);
+            // console.log('action end');
+            await wait(choose([1,2]));
+            unit.sightToggled = false;
+        }
+        
+    });
+
+
+    action("enemy-unit", async (unit) => {
+
+        if(!unit.sightToggled){
+            unit.sightToggled = true
+
+            unit.toggleSight(unit);
+            // console.log('action end');
+            await wait(1);
+            unit.sightToggled = false;
+        }
+        
+    });
+
+    const EnemySight = (sight) => {
+
+        if(!sight.parent.props.exists()){
+            destroy(sight);
+        }
+
+        if (sight.inSight.length > 0) {
+            sight.inSight = sight.inSight.filter(unit => unit.exists() == true);
+            sight.inSight = sight.inSight.filter(unit => unit.isOverlapped(sight) == true);
+
+            if (sight.parent.props.currentTarget != sight.inSight[0]) {
+                sight.parent.props.currentTarget = sight.inSight[0];
+            }
+        }
+        else {
+            sight.parent.props.currentTarget = null;
+
+            if (!sight.moved){
+                sight.moved = true
+                sight.parent.moveSight(sight.parent.props);
+            }
+        }
+    };
+
+    const EnemyUnits = async (u) => {
+
+        await wait(0.2);
+
+
+
+        if (u.currentTarget) {
+
+            if (!u.currentTarget.exists()) {
+                u.currentTarget = null;
+                return false;
+            }
+
+            if (u.readyToFire) {
+                u.readyToFire = false;
+
+                u.shoot(u);  
+
+                await wait(1, () => {
+                    u.currentTarget = null;
+                    u.readyToFire = true;
+                });
+
+            }
+
+        }
+        // else {
+            // status2.text = 'scanning';
+        // }
+    };
+
+    const PlayerAction = async (u) => {
 
         if (u.isHighlighted) {
             u.color.r = 0.5;
@@ -201,6 +280,8 @@ const mainScreen = scene('main', () => {
             if (Math.abs(moveVecX) < 10) {
                 if (Math.abs(moveVecY) < 10) {
                     u.isMoving = false;
+                    u.newsight.moved = false;
+                    u.currentTarget = null;
                     return false;
                 }
             }
@@ -209,102 +290,114 @@ const mainScreen = scene('main', () => {
             moveVecX = (moveVecX / mag) * u.speed;
             moveVecY = (moveVecY / mag) * u.speed;
             u.move(moveVecX, moveVecY);
-            u.moveSight(u);
         }
-
-        if (u.currentTarget) {
-
-            if (!u.currentTarget.exists()) {
-                u.currentTarget = null;
-                return false;
+        else{
+            if(!u.newsight.moved){
+                
+                u.newsight.moved = true;
+                u.moveSight(u);
             }
 
-            if (u.readyToFire) {
-                u.readyToFire = false;
-                u.shoot(u);
-                wait(1, () => {
-                    u.readyToFire = true;
-                });
+            await wait(0.1);
+            if (u.currentTarget) {
+
+                if (!u.currentTarget.exists()) {
+                    u.currentTarget = null;
+                    return false;
+                }
+    
+                if (u.readyToFire) {
+                    u.readyToFire = false;
+                    u.shoot(u);
+                    wait(1, () => {
+                        u.readyToFire = true;
+                    });
+                }
             }
+
+
         }
+
+
     };
 
 
-    const frame = add([
-        rect(k.width(), k.height()),
-        pos(0,0),
-        color(0,0,0),
-    ])
 
     const ground = add([
-        rect(k.width() - 28, k.height() - 140),
+        // rect(k.width() - 28, k.height() - 140),
+        rect(1500, 1500),
         pos( 14, 34),
         color(0.2, 0.2, 0.2),
-        
-        // layer("ground"),
-    ], 'ground',);
+        layer('obj'),
+        // 'ground',
+    ]);
+
+    const bottomPanel = add([
+        rect(k.width(), bottomPanelHeight),
+        pos(0,k.height() - bottomPanelHeight),
+        color(0,0,0),
+        layer('ui'),
+    ])
 
     const resourcesDisplay = add([
         text(`Gold: ${goldAmount}     Oil: ${oilAmount}`, 12),
         pos(18, 14),
         color(1, .6, .9),
+        layer('ui')
     ])
 
     const messages = add([
         text('Messages', 9, {
             width: 400,
         }),
-        pos( 18, k.height() - 30)
+        pos( 18, k.height() - 30),
+        layer('ui'),
 
     ]);
 
     const status = add([
         text('enemy state', 12),
-        pos(20,200)
+        pos(20,200),
+        layer('ui')
     ])
 
     const status2 = add([
         text('enemy state', 12),
-        pos(20,220)
+        pos(20,220),
+        layer('ui')
     ])
 
     const status3 = add([
-        text('enemy state', 12),
-        pos(20,240)
+        text('asda', 12),
+        pos(20,240),
+        layer('ui')
     ])
 
     const b2 = new Button(14, messages.pos.y  - 36, 'Building 1', 140);
     const b1 = new Button(14,  b2.y - 34, 'Unit 1');
 
-    const troopB = Building(340, 50, 'enemy-building');
+    const troopB = new Building(340, 50, 'enemy-building');
 
     let eSpawned = false;
 
-    action('enemy-building', async (b) => {
 
+    b2.ref.clicks( () => {
 
-        if(!eSpawned){
-
-            eSpawned = true;
-
-            await wait(4, () => {
-                const u = new Unit(b.pos.x - 130, b.pos.y + 100, 'enemy-unit', 100)
-                u.getSight(u)
-            });
-
-            eSpawned = false;
+        try {
+            if(mainTB.building.exists()){
+                messages.text = 'Build limit reached'
+            }
+            else {
+                // await wait(0.1);
+                placingBuilding = true;
+                messages.text = 'choose location';
+            }
+        } catch (error) {
+            // await wait(0.1);
+            placingBuilding = true;
+            messages.text = 'choose location';
         }
 
-        
-
-        
-
-    });
-
-    b2.ref.clicks(() => {
-
-        placingBuilding = true
-        messages.text = 'Choose location';
 
         // const bluePrint = add([
         //     rect(30, 30),
@@ -315,14 +408,48 @@ const mainScreen = scene('main', () => {
 
     });
 
+    b1.ref.clicks(() => {
 
-    for (let i = 0; i < 4; i++){
-        const x = new Unit(rand(40, 200), rand(80, 130), 'enemy-unit');
-        x.getSight(x);
+        try {
+            // console.log(mainTB.building.exists())
+            if(mainTB.building.exists()){
+                const z = new Unit(mainTB.building.pos.x, mainTB.building.pos.y, 'player-unit');
+                z.getSight(z);
+            }
+            else {
+                messages.text = 'Troops building required'
+            }
+        } catch (error) {
+            messages.text = 'Troops building required'
+        }
         
-    }
+    });
+
+
+
+
+    action('enemy-building', async (b) => {
+
+        status3.text = debug.fps();
+        // if(!eSpawned){
+
+        //     eSpawned = true;
+
+        //     await wait(4, () => {
+        //         const u = new Unit(b.pos.x - 130, b.pos.y + 100, 'enemy-unit', 100)
+        //         u.getSight(u)
+        //     });
+
+        //     eSpawned = false;
+        // }
+
+    });
+
+
+    
 
     overlaps('enemy-sight', 'player-unit', (s, p) =>{
+
         s.inSight.push(p);
         s.parent.hasTarget = true;
     });
@@ -385,14 +512,6 @@ const mainScreen = scene('main', () => {
     mouseRelease(MouseRelease);
     ground.clicks(GroundIsClicked);
 
-    b1.ref.clicks(() => {
-        try {
-            const z = new Unit(mainTB.pos.x, mainTB.pos.y, 'player-unit');
-            z.getSight(z);
-        } catch (e) {
-                messages.text = e;
-        }
-    });
 
     const moveUnits = function(i, mx, my){
         i.destinationX = mx;
@@ -400,45 +519,8 @@ const mainScreen = scene('main', () => {
         i.isMoving = true;
     }
 
-    // Cancel current unit selection.
-    keyPress('c', () => {
-        const temp = selectedUnits.slice()
-        for(let i of temp){
-            i.isHighlighted = false;
-            i.selected = false;
-            selectedUnits.pop()
-        }
-        messages.text = 'Selection canceled'
-    });
-
-    keyPress('p', () => {
-        messages.text = 'Paused'
-        debug.paused = !debug.paused;
-    });
-
-    // RUNNING TWICE ? 
-    // on("add", "player-unit", async (e) => {
-    //     console.log('unit ready')
-    //     await wait(1, () =>{
-    //         e.getSight(e);
-    //     })
-    //     console.log('getSight done')
-    // });
-
-    
-
-    action('player-sight', (s) => {
-        if(!s.parent.props.exists()){
-            destroy(s);
-        }
-    });
-    action('enemy-sight', (s) => {
-        if(!s.parent.props.exists()){
-            destroy(s);
-        }
-    });
-
     action('player-building', (b) => {
+
         if (b.isHighlighted){
             b.color.r = 1;
         }
@@ -454,14 +536,11 @@ const mainScreen = scene('main', () => {
             if(e.isIdle) return false;
 
             if(!e.isMoving){
-                
                 moveUnits(
                     e, 
                     e.pos.x + choose([3,4,5])*50, 
                     e.pos.y + choose([3,4,5])*50);
-
             }
-
 
             if(e.isMoving){
 
@@ -472,9 +551,11 @@ const mainScreen = scene('main', () => {
                     if (Math.abs(moveVecY) <= 1) {
 
                         e.isIdle = true;
+                        e.newsight.moved = false;
                         await wait(choose([3, 5, 7, 12, 15]));
                         e.isMoving = false;
                         e.isIdle = false;
+                        
                         return false;
                     }
                 }
@@ -496,7 +577,175 @@ const mainScreen = scene('main', () => {
 
 
 
+
+
+    function cancelSelection(){
+
+        const temp = selectedUnits.slice()
+        for(let i of temp){
+            i.isHighlighted = false;
+            i.selected = false;
+        }
+        selectedUnits = [];
+        messages.text = 'Selection canceled'
+        placingBuilding = false;
+
+    }
+
+
+
+    // Cancel current selection.
+    keyPress('c', () => {
+        cancelSelection();
+    });
+
+    keyPress('p', () => {
+        messages.text = 'Paused'
+        debug.paused = !debug.paused;
+    });
+
+    keyPress('w', () =>{
+        console.log(camPos().y)
+
+        camPos().y -= 10
+    });
+
+    keyPress('s', () =>{
+        console.log(camPos().y)
+
+        camPos(mousePos())
+    });
+
+    on('add', 'player-unit', (u) =>{
+        wait(0.5, () => {
+
+            u.newsight.paused = true;
+            u.newsight.hidden = true;
+        })
+        
+    });
+
+    on('add', 'enemy-unit', (u) =>{
+        wait(0.5, () => {
+            u.newsight.paused = true;
+            u.newsight.hidden = true;
+        })
+        
+    });
+
+
+    keyPress('h', () => {
+
+        const a = get('player-sight');
+
+        console.log(a.paused)
+
+        for(let i of a){
+            // console.log(i);
+            // i.hidden = true;
+            i.paused = false;
+            i.hidden = false;
+
+            wait(0.1, () =>{
+                i.paused = true;
+                i.hidden = true;
+            })
+        }
+
+    });
+
+    keyPress('1', () => {
+        if(keyIsDown('control')){
+            groups[0] = selectedUnits.slice();
+        }
+        else {
+            try {
+                cancelSelection();
+                groups[0] = groups[0].filter(unit => unit.exists())
+                for(let i of groups[0]){
+                    i.isHighlighted = true;
+                    selectedUnits.push(i);
+                }
+                selectionSet = true;
+                messages.text = `${selectedUnits.length} units selected`;
+            } catch (e) {
+                console.log(e);
+            }
+        }
+    });
+
+    keyPress('2', () => {
+        if(keyIsDown('control')){
+            groups[1] = selectedUnits.slice();
+        }
+        else {
+            try {
+                cancelSelection();
+                groups[1] = groups[1].filter(unit => unit.exists())
+                for(let i of groups[1]){
+                    i.isHighlighted = true;
+                    selectedUnits.push(i);
+                }
+                selectionSet = true;
+                messages.text = `${selectedUnits.length} units selected`;
+            } catch (e) {
+                console.log(e);
+            }
+        }
+    });
+
+    keyPress('3', () => {
+        if(keyIsDown('control')){
+            groups[2] = selectedUnits.slice();
+        }
+        else {
+            try {
+                cancelSelection();
+                groups[2] = groups[2].filter(unit => unit.exists())
+                for(let i of groups[2]){
+                    i.isHighlighted = true;
+                    selectedUnits.push(i);
+                }
+                selectionSet = true;
+                messages.text = `${selectedUnits.length} units selected`;
+            } catch (e) {
+                console.log(e);
+            }
+        }
+    });
+
+
+
+
+
+
+
+
+
     //////////////////////////////////////////////
+    // DEBUG
+
+    keyPress('r', () =>{
+        if(selectedUnits.length > 0){
+            for(let i of selectedUnits){
+                destroy(i);
+            }
+            selectedUnits = [];
+        }
+    });
+
+    keyPress('u', () =>{
+        const x = new Unit(rand(40, 200), rand(80, 130), 'enemy-unit');
+        x.getSight(x);
+    });
+
+
+    /////////////////////////////////////////////////
+
+
+
+
+
 });
 
 scene('Paused', () => {
