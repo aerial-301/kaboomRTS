@@ -1,6 +1,6 @@
 export default class Unit{
 
-    constructor(xPos, yPos, tag, sWidth = 140, sight = null){
+    constructor(type, xPos, yPos, tag, sWidth = 140, health = 30, sight = null){
 
         let oC
         this.xPos = xPos;
@@ -11,33 +11,37 @@ export default class Unit{
         this.xSight = xPos - (sWidth/2) + 2.5;
         this.ySight = yPos - (sWidth/2) + 2.5;
         
+        
         if (tag == 'enemy-unit'){
-            this.c = [.5,.2,.2,1];
+            // this.c = [1,.2,.2,1];
             // c = [.7,.2,.2,1];
             this.sightTag = 'enemy-sight';
+            this.startFrame = 10;
         } 
             
         else {
-            this.c = [.2,.5,.2,1];
+            // this.c = [.2,1,.2,1];
             // c = [.2,1,.2,1];
             this.sightTag = 'player-sight';
+            this.startFrame = 0;
         }
 
         this.props = add([
-            rect(5, 5),
+            // color(1, 1, 1, 1),
             pos(xPos, yPos),
-            // color(this.c),
-            // color(0, 0, 0),
-            color(this.c),
+            sprite(type, {
+                animSpeed: 0.1, // time per frame (defaults to 0.1)
+                frame: 0, // start frame (defaults to 0)
+            }),
             tag,
             'Killable',
         
             {   
-                health: 25,
-                speed: 300,
+                health: health,
+                speed: 70,
                 selected: false,
                 isHighlighted: false,
-                isMoving: true,
+                isMoving: false,
                 destinationX: xPos - rand(20, 40),
                 destinationY: yPos + rand(-20, 20),
                 hasTarget: false,
@@ -47,12 +51,18 @@ export default class Unit{
                 sightOwner: tag,
                 getSight: this.getSight,
                 shoot: this.shoot,
+                getShot: this.getShot,
                 moveSight: this.moveSight,
                 toggleSight: this.toggleSight,
                 xOrigin: 0,
                 yOrigin: 0,
                 isIdle: false,
                 sightToggled: false,
+                isMoveAnimation: false,
+                isFireAnimation: false,
+                isPainAnimation: false,
+                startFrame: this.startFrame,
+                
                 
             }
         ]);
@@ -113,30 +123,41 @@ export default class Unit{
 
         if(!u || u.currentTarget == null || !u.currentTarget.exists()) return false
 
+        u.getShot(u.currentTarget, u);
+
+
         play("shoot", {
             volume: 1.0,
             speed: 1,
             detune: 0,
         });
-
-        u.color.r = 1;
-        u.color.g = 1;
-        u.color.b = 1;
         
-        u.currentTarget.health -= 7;
+        
+        u.play('fire');
+        await wait(0.05);
+        u.stop();
+        u.frame = u.startFrame;
 
-        await wait(0.05, () => {
-
-            if(u.sightOwner == 'enemy-unit'){
-                u.color.r = .5;
-                u.color.g = .2; 
-                u.color.b = .2;
-            }
-            else{
-                u.color.r = .2;
-                u.color.g = .5; 
-                u.color.b = .2;
-            }
-        })
+        
     }
+
+
+    async getShot(target, shooter){
+
+        target.health -= 3;
+        if (target.health <= 0){
+            destroy(target);
+        }
+        else{
+            target.play('pain');
+            await wait(0.05);
+            target.stop();
+            target.frame = target.startFrame;
+            target.currentTarget = shooter;
+        }
+
+    }
+
+
+
 }

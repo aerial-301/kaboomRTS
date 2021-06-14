@@ -1,25 +1,32 @@
 export default class Building {
 
-    constructor(xPos, yPos, tag, width = 30, height = 30){
+    constructor(type, xPos, yPos, tag, health = 1000){
 
-        let c;
+        this.startFrame;
+
+        this.type = type
+
+        this.health = health
+
 
         if(tag == 'player-building'){
-            c = [0.2, 1, 0.2, 1];
+            this.startFrame = 0;
         }
-        else c = [1, 0.3, 0.3, 1];
+        else this.startFrame = 1;
 
         this.building = add([
-            rect(width, height),
             pos(xPos, yPos),
-            color(c),
+            sprite(type, {
+                frame: this.startFrame,
+            }),
             tag,
             'Killable',
             {   
-                health: 100,
+                health: health,
                 gate_x: 380,
                 gate_y: 430,
                 isHighlighted: false,
+                startFrame: this.startFrame,
             }
         ]);
 

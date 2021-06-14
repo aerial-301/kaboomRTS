@@ -1,4 +1,5 @@
 'use-strict';
+
 import Button from './buttons.js';
 import Building from './building.js';
 import Unit from './troops/units.js';
@@ -18,18 +19,113 @@ loadSprite("terrain", "./assets/GroundTerrain.jpeg");
 loadSprite("BottomPanel", "./assets/BottomPanel.jpeg");
 loadSprite("TopFrame", "./assets/TopFrame.jpeg");
 
+loadSprite("Camp", "./assets/CampSprite2.png", 
+
+        {
+            sliceX: 3,
+            sliceY: 1,
+            anims: {
+                pain: {
+                    from: 2,
+                    to: 2,
+                },
+            },
+        }
+);
+
+loadSprite("Miner", "./assets/MinerSprite.png", 
+
+        {
+            sliceX: 3,
+            sliceY: 1,
+            anims: {
+                pain: {
+                    from: 2,
+                    to: 2,
+                },
+            },
+        }
+)
+
+
+// loadSprite("GreenRM", "./assets/GreenRM.png", 
+
+//         {
+//             sliceX: 5,
+//             sliceY: 2,
+//             anims: {
+//                 move: {
+//                     from: 1,
+//                     to: 4,
+//                 },
+//                 fire: {
+//                     from: 5,
+//                     to: 5,
+//                 },
+//                 pain: {
+//                     from: 7,
+//                     to: 8,
+//                 },
+//             },
+//         }
+// );
+
+loadSprite("GreenRM", "./assets/RMsprites.png", 
+
+        {
+            sliceX: 5,
+            sliceY: 4,
+            anims: {
+                move: {
+                    from: 1,
+                    to: 4,
+                },
+                fire: {
+                    from: 5,
+                    to: 5,
+                },
+                pain: {
+                    from: 7,
+                    to: 8,
+                },
+            },
+        }
+);
+
+
+loadSprite("BlueRM", "./assets/RMsprites.png", 
+
+        {
+            sliceX: 5,
+            sliceY: 4,
+            anims: {
+                move: {
+                    from: 11,
+                    to: 14,
+                },
+                fire: {
+                    from: 15,
+                    to: 15,
+                },
+                pain: {
+                    from: 17,
+                    to: 18,
+                },
+            },
+        }
+);
+
 scene('root', () => {
 
-    const rootBackGround = add([
-        rect(k.width(), k.height()),
-        pos(0,0),
-        color(0,0,0),
-    ]);
+    // const rootBackGround = add([
+    //     rect(k.width(), k.height()),
+    //     pos(0,0),
+    //     color(0,0,0),
+    // ]);
+    
+    const startButton = new Button(k.width() / 2 - 100, 200, 'Start', 200, 80, 38, 28, 22);
 
-    const startButton = new Button(k.width() / 2 - 100, 200, 'Start',
-                    200, 80, 38, 28, 24);
-
-    startButton.ref.clicks(() => {
+    startButton.button.clicks(() => {
 
         go('main');
     });
@@ -37,6 +133,10 @@ scene('root', () => {
 
 
 const mainScreen = scene('main', () => {
+
+    
+
+    console.log(document.body.style.cursor)
 
     layers([
         "obj", "ui",
@@ -46,19 +146,66 @@ const mainScreen = scene('main', () => {
     
     let moveVecX, moveVecY, mousePosX, mousePosY, mag, moveX, moveY;
     let mainTB;
-    let goldAmount = 1000;
-    let oilAmount = 1000;
+    
     let rectPosSet = false;
     let oldMousePosX = 0;
     let oldMousePosY = 0;
     let selectedUnits = []
     let selectionSet = false;  
     let placingBuilding = false;
+    let sellBuilding = false;
+
     const unitsSpacingX = 80; 
     const unitsSpacingY = 10;
     const bottomPanelHeight = 120;
     const topFrameHeight = 40;
     let groups = [[],[],[]];
+
+    const playerHQPosX = 1150;
+    const playerHQPosY = 700;
+
+    let camPosX = 1100;
+    let camPosY = 815;
+    let camS = 1;
+
+    let BP;
+
+    let currentBluePrint;
+    let distanceFromHQ;
+
+    let selectedBuilding;
+
+    let goldAmount = 20000;
+    let oilAmount = 1400;
+    let byteCoinAmount = 300;
+
+    const MinerHealth = 1200;
+    const MinerWidth = 30;
+    const MinerHeight = 70;
+    const MinerGoldCost = 800;
+
+    const CampHealth = 750;
+    const CampWidth = 90;
+    const CampHeight = 90;
+    const CampGoldCost = 550;
+
+    const RifleManGoldCost = 15;
+    const RocketManGoldCost = 24;
+
+    const HQHealth = 3000;
+    const HQWidth = 120;
+    const HQHeight = 120;
+
+    let MaxBuildDistance = 200;
+
+
+
+
+
+
+    
+
+
 
     on('add', 'player-unit', (u) =>{
         wait(0.5, () => {
@@ -90,6 +237,8 @@ const mainScreen = scene('main', () => {
             return false;
         }
 
+        // await wait(0.01);
+
         if (!rectPosSet) {
 
             selection.pos.x = mousePos().x;
@@ -109,6 +258,9 @@ const mainScreen = scene('main', () => {
     };
 
     const MouseRelease = () => {
+
+
+        if(!rectPosSet) return false
 
         const finalSelection = add([
             rect(selection.width, selection.height),
@@ -130,18 +282,11 @@ const mainScreen = scene('main', () => {
                 selectionSet = true;
             }
             destroy(finalSelection);
+            rectPosSet = false;
         });
-        rectPosSet = false;
     };
 
     const GroundIsClicked = async () => {
-
-        // status2.text = `${mousePos('ui').x}, ${mousePos('ui').y}`
-
-        // console.log(mainTB);
-        
-        // console.log(placingBuilding);
-
 
         if(mousePos('ui').y >= k.height() - bottomPanelHeight) return false;
         if(mousePos('ui').y <= topFrameHeight) return false;
@@ -165,25 +310,30 @@ const mainScreen = scene('main', () => {
         
         else if (placingBuilding) {
 
-            placingBuilding = false;
+            if(distanceFromHQ > MaxBuildDistance) {
+                return false;
+            }
 
-            mainTB = new Building(mousePos().x, mousePos().y, 'player-building');
-            
-            // await wait(0.5);
-            console.log('mainTB', mainTB)
-            console.log('mainTB.building', mainTB.building)
-            mainTB.building.clicks(() => {
-                if (!selectedUnits.includes(mainTB.building)) {
-                    selectedUnits.push(mainTB.building);
+            for(let i of get('player-building')){
+                if(BP.isCollided(i)){
+                    messages.text = `Can't build here`;
+                    return false;
                 }
-            });
-            // troobsBuilding = true;
-            messages.text = 'Construction Complete';
-            // mainTB = troopB;
-            
-        }
+            }
 
-        // console.log(mainTB.exists());
+
+            await wait(0.005);
+
+            if (build(currentBluePrint)){
+
+                placingBuilding = false;
+                // await wait(0.001);
+                destroy(BP);
+                messages.text = 'Construction Complete';
+            }
+
+
+        }
 
     };
 
@@ -205,8 +355,7 @@ const mainScreen = scene('main', () => {
             unit.sightToggled = true
 
             unit.toggleSight(unit);
-            // console.log('action end');
-            await wait(1);
+            await wait(choose([1,2]));
             unit.sightToggled = false;
         }
         
@@ -255,22 +404,23 @@ const mainScreen = scene('main', () => {
                 await wait(1, () => {
                     u.currentTarget = null;
                     u.readyToFire = true;
+                    // u.toggleSight();
                 });
 
             }
         }
     };
 
+
     const PlayerAction = async (u) => {
 
-        if (u.isHighlighted) {
-            u.color.r = 0.5;
-        }
-        else {
-            u.color.r = 0;
-        }
 
         if (u.isMoving) {
+
+            if (!u.isMoveAnimation) {
+                u.play("move");
+                u.isMoveAnimation = true;
+            }
 
             moveVecX = Math.floor(u.destinationX - u.pos.x);
             moveVecY = Math.floor(u.destinationY - u.pos.y);
@@ -280,6 +430,10 @@ const mainScreen = scene('main', () => {
                     u.isMoving = false;
                     u.newsight.moved = false;
                     u.currentTarget = null;
+                    u.stop();
+                    u.frame = u.startFrame;
+                    // obj.frame
+                    u.isMoveAnimation = false;
                     return false;
                 }
             }
@@ -320,15 +474,165 @@ const mainScreen = scene('main', () => {
     };
 
     const ground = add([
-        // rect(k.width() - 28, k.height() - 140),
         rect(1400, 900),
         sprite('terrain'),
-        
-        
         pos( 14, 34),
         color(.6, .6, .6, 1),
         layer('obj'),
     ]);
+
+    function addBluePrint(w, h, type, cost){
+        currentBluePrint = type;
+        BP = add([
+            rect(w, h),
+            color(1,1,1,0.3),
+            pos(mousePos().x, mousePos().y),
+            'BluePrint',
+            {
+                cost: cost,
+                canBuild: false,
+                collided: false,
+            }
+        ])
+    }
+
+    function build(type){
+
+        // console.log(type);
+
+        switch (type) {
+            case 'Camp':
+
+                if (goldAmount >= CampGoldCost){
+
+                    mainTB = new Building('Camp', mousePos().x, mousePos().y, 'player-building', CampWidth, CampHeight, CampHealth);
+                    mainTB.building.clicks( () => {
+                        // console.log(selectedUnits)
+                        
+                        if(!selectionSet){
+                            if(!placingBuilding){
+                                if ( !selectedUnits.includes(mainTB.building)){
+                                // if ( selectedUnits.length == 0){
+                                    selectedUnits.push(mainTB.building);
+                                }
+                            }
+                        }
+                        else if(selectedUnits.length == 1){
+                            selectedUnits[0].isHighlighted = false;
+                            selectedUnits.pop();
+                            selectedUnits.push(mainTB.building);
+                        }
+                    });
+
+                    goldAmount -= CampGoldCost;
+                    return true;
+
+                }
+                else {
+                    messages.text = `Insufficient gold, ${MinerGoldCost - goldAmount} more gold is needed`;
+                    return false;
+                }
+
+
+            break;
+
+            case 'Miner':
+
+
+                if (goldAmount >= MinerGoldCost){
+
+
+                    const MinerB = new Building('Miner', mousePos().x, mousePos().y, 'player-building', MinerWidth, MinerHeight, MinerHealth);
+
+                    MinerB.building.clicks(() => {
+
+
+                        if(sellBuilding){
+                            destroy(MinerB.building);
+
+                        }
+
+
+
+
+                        // if(!selectionSet){
+                        //     if(!placingBuilding){
+                        //         if ( !selectedUnits.includes(MinerB.building)){
+                        //             selectedUnits.push(MinerB.building);
+                        //         }
+                        //     }
+                        // }
+                        // else if(selectedUnits.length == 1){
+                        //     selectedUnits[0].isHighlighted = false;
+                        //     selectedUnits.pop();
+                        //     selectedUnits.push(MinerB.building);
+                        // }
+                    });
+
+                    MinerB.building.use({isMining: false});
+
+                    MinerB.building.action( async () => {
+                        if(!MinerB.building.isMining){    
+                            MinerB.building.isMining = true;
+                            await wait(rand(10, 30));
+                            byteCoinAmount += 1;
+                            MinerB.building.isMining = false;
+
+                        }
+                    });
+
+                    goldAmount -= MinerGoldCost;
+                    return true;
+
+                }
+                else {
+                    messages.text = `Insufficient gold, ${MinerGoldCost - goldAmount} more gold is needed`
+                    return false;
+                }
+
+                break;
+
+            default:
+                break;
+        }
+
+    }
+
+
+    action('player-building', (b) => {
+
+        // if(b.isHighlighted) b.color.r = 1
+        // else b.color.r = 0
+    });
+
+
+    ground.action(() => {
+        
+        if(placingBuilding){
+
+            if(selectionSet) selectionSet = false;
+
+            if(ground.isHovered()){
+
+                BP.pos.x = mousePos().x;
+                BP.pos.y = mousePos().y;
+
+                distanceFromHQ = Math.sqrt((playerHQPosX - mousePos().x)**2 + (playerHQPosY - mousePos().y)**2);
+                // messages.text = BP.cost;
+                if(distanceFromHQ > MaxBuildDistance || goldAmount < BP.cost || BP.collided){
+                    // console.log(BP.color)
+                    BP.canBuild = false;
+                    BP.color = rgba(1, 0, 0, 1);
+                }
+                else {
+                    BP.canBuild = true;
+                    BP.color = rgba(1, 1, 1, 0.3);
+                }
+                
+            }
+        }
+    })
+
 
     const bottomPanel = add([
         rect(k.width(), bottomPanelHeight),
@@ -347,11 +651,17 @@ const mainScreen = scene('main', () => {
     ]);
 
     const resourcesDisplay = add([
-        text(`Gold: ${goldAmount}     Oil: ${oilAmount}`, 12),
+        text(`Gold: ${goldAmount}     Oil: ${oilAmount}     ByteCoin: ${byteCoinAmount}`, 12),
         pos(18, 14),
         color(1, .6, .9),
         layer('ui')
     ])
+
+
+    resourcesDisplay.action( async () => {
+        await wait(0.1);
+        resourcesDisplay.text = `Gold: ${goldAmount}     Oil: ${oilAmount}     ByteCoin: ${byteCoinAmount}`;
+    });
 
     const messages = add([
         text('Messages', 9, {
@@ -380,41 +690,79 @@ const mainScreen = scene('main', () => {
         layer('ui')
     ])
 
-    const b2 = new Button(14, messages.pos.y  - 36, 'Building 1', 140);
-    const b1 = new Button(14,  b2.y - 34, 'Unit 1');
+    const status4 = add([
+        text('asda', 12),
+        pos(20,260),
+        layer('ui')
+    ])
 
-    const troopB = new Building(340, 50, 'enemy-building');
+
+    function recruteRifleMan(){
+        if(goldAmount >= RifleManGoldCost){
+            goldAmount -= RifleManGoldCost;
+            const z = new Unit('GreenRM', mainTB.building.pos.x + 15, mainTB.building.pos.y + CampHeight - 25, 'player-unit');
+            z.getSight(z);
+            z.play('run');
+        }
+        else{
+            messages.text = `Not enough gold`;
+        }
+    }
+
+    
+
+    function buildCamp(){
+        placingBuilding = true;
+        messages.text = 'choose location';
+        addBluePrint(CampWidth, CampHeight, 'Camp', CampGoldCost);
+    }
+
+    function buildMiner(){
+        placingBuilding = true;
+        messages.text = 'choose location';
+        addBluePrint(MinerWidth, MinerHeight, 'Miner', MinerGoldCost);
+    }
+
+
+    const troopB = new Building('Camp', 340, 50, 'enemy-building');
+    const playerHQ = new Building('Camp', playerHQPosX, playerHQPosY, 'player-building', HQWidth, HQHeight, HQHealth);
+    const enemyHQ = new Building('Camp', 200, 200, 'enemy-building', HQWidth, HQHeight, HQHealth);
+
+    const buildCampButton = new Button(14, messages.pos.y  - 36, buildCamp, 'Army Camp', 150);
+    const buildMinerButton = new Button(14,  buildCampButton.y - 34, buildMiner, 'Miner', 150);
+
+    const recruitRifleManButton = new Button(200,  buildCampButton.y - 34, recruteRifleMan, 'Rifle Man', 150);
+    const recruitRocketManButton = new Button(200,  messages.pos.y - 36, 'Rocket Man', 150);
 
     let eSpawned = false;
+    
+    buildMinerButton.button.clicks( async () => {
+        await wait(0.1);
+        buildMinerButton.act();
+    });
 
-
-    b2.ref.clicks( async () => {
-
+    buildCampButton.button.clicks( async () => {
+    
         try {
             if(mainTB.building.exists()){
                 messages.text = 'Build limit reached'
             }
             else {
                 await wait(0.1);
-                placingBuilding = true;
-                messages.text = 'choose location';
+                buildCampButton.act();
             }
         } catch (error) {
-            placingBuilding = true;
-            messages.text = 'choose location';
+            await wait(0.1);
+            buildCampButton.act();
         }
-
-        // TODO: Building blueprint
 
     });
 
-    b1.ref.clicks(() => {
+    recruitRifleManButton.button.clicks(() => {
 
         try {
-            // console.log(mainTB.building.exists())
             if(mainTB.building.exists()){
-                const z = new Unit(mainTB.building.pos.x, mainTB.building.pos.y, 'player-unit');
-                z.getSight(z);
+                recruitRifleManButton.act();
             }
             else {
                 messages.text = 'Troops building required'
@@ -429,6 +777,7 @@ const mainScreen = scene('main', () => {
     action('enemy-building', async (b) => {
 
         status3.text = debug.fps();
+        status4.text = `selectionSet = ${selectionSet}`;
 
         // TODO: enemy building logic
 
@@ -468,11 +817,11 @@ const mainScreen = scene('main', () => {
         s.parent.hasTarget = true;
     });
 
-    action('Killable', (u) =>{
-        if(u.health <= 0){
-            destroy(u);
-        }
-    })
+    // action('Killable', (u) =>{
+        // if(u.health <= 0){
+        //     destroy(u);
+        // }
+    // })
 
     action('enemy-sight', EnemySight);
 
@@ -507,15 +856,7 @@ const mainScreen = scene('main', () => {
         i.isMoving = true;
     }
 
-    action('player-building', (b) => {
 
-        if (b.isHighlighted){
-            b.color.r = 1;
-        }
-        else{
-            b.color.r = 0;
-        }
-    });
 
     action('enemy-unit', async (e) => {
 
@@ -532,6 +873,13 @@ const mainScreen = scene('main', () => {
 
             if(e.isMoving){
 
+
+                if(!e.isMoveAnimation){
+                    e.play('move');
+                    e.isMoveAnimation = true;
+
+                }
+
                 moveVecX = Math.floor(e.destinationX - e.pos.x);
                 moveVecY = Math.floor(e.destinationY - e.pos.y);
 
@@ -540,6 +888,9 @@ const mainScreen = scene('main', () => {
 
                         e.isIdle = true;
                         e.newsight.moved = false;
+                        e.isMoveAnimation = false;
+                        e.stop();
+                        e.frame = e.startFrame;
                         await wait(choose([3, 5, 7, 12, 15]));
                         e.isMoving = false;
                         e.isIdle = false;
@@ -566,6 +917,11 @@ const mainScreen = scene('main', () => {
         selectedUnits = [];
         messages.text = 'Selection canceled'
         placingBuilding = false;
+        selectionSet = false;
+        // selectedBuilding.isHighlighted = false;
+        selectedBuilding = null;
+
+        if(BP) destroy(BP);
 
     }
 
@@ -573,10 +929,7 @@ const mainScreen = scene('main', () => {
     ///////////////////////////////////////////////
     /// KeyPress Events
 
-    let camPosX = 1100;
-    let camPosY = 815;
-
-    let camS = 1;
+    
 
     action(() => {
 
@@ -623,6 +976,7 @@ const mainScreen = scene('main', () => {
     keyPress('c', () => {
         cancelSelection();
     });
+    
 
     keyPress('p', () => {
         messages.text = 'Paused'
@@ -630,8 +984,10 @@ const mainScreen = scene('main', () => {
     });
 
 
+
     keyPress('1', () => {
         if(keyIsDown('control')){
+
             groups[0] = selectedUnits.slice();
         }
         else {
@@ -736,8 +1092,8 @@ const mainScreen = scene('main', () => {
             for(let i of selectedUnits){
                 console.log('i = ', i );
                 destroy(i);
-                console.log('i = ', i);
-                console.log('ib = ', i.exists());
+                // console.log('i = ', i);
+                // console.log('ib = ', i.exists());
             }
             selectedUnits = [];
             selectionSet = false
@@ -745,7 +1101,7 @@ const mainScreen = scene('main', () => {
     });
 
     keyPress('u', () =>{
-        const x = new Unit(rand(40, 200), rand(80, 130), 'enemy-unit');
+        const x = new Unit('BlueRM', rand(40, 200), rand(80, 130), 'enemy-unit');
         x.getSight(x);
     });
 
@@ -768,5 +1124,10 @@ scene('Paused', () => {
     
 });
 
-start('root');
-// start('main');
+
+// start('root');
+start('main');
+
+
+
+
