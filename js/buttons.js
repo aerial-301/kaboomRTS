@@ -17,18 +17,22 @@ export default class Button {
             rect(w, h ),
             pos(x, y),
             color(0.2, 0.3, 1),
-            layer('ui')
+            layer('ui'),
+            {
+                act: this.act,
+            }
         ]);
 
         add([
+
             text(t, f_size, {
                 width: w,
                 
                 
             }),
+            pos(x + left_p, y + top_p),
             layer('ui'),
             
-            pos(x + left_p, y + top_p),
         ]);
 
     }

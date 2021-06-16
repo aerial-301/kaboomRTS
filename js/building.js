@@ -1,13 +1,17 @@
+import { buildingsProperties } from "./constants.js";
+
 export default class Building {
 
-    constructor(type, xPos, yPos, tag, health = 1000){
-
-        this.startFrame;
+    constructor(type, xPos, yPos, tag){
 
         this.type = type
 
-        this.health = health
-
+        if(type == 'Camp'){
+            this.health = buildingsProperties.CAMP.health;
+        }
+        else if (type == 'Miner'){
+            this.health = buildingsProperties.MINER.health;
+        }
 
         if(tag == 'player-building'){
             this.startFrame = 0;
@@ -19,10 +23,12 @@ export default class Building {
             sprite(type, {
                 frame: this.startFrame,
             }),
+            solid(),
             tag,
+            'Building',
             'Killable',
             {   
-                health: health,
+                health: this.health,
                 gate_x: 380,
                 gate_y: 430,
                 isHighlighted: false,
