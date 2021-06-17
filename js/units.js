@@ -1,4 +1,4 @@
-import { unitsProperties } from "../constants.js";
+import { unitsProperties } from "./constants.js";
 
 
 export default class Unit{
@@ -8,12 +8,7 @@ export default class Unit{
         this.xPos = xPos;
         this.yPos = yPos;
         this.tag = tag;
-        // this.damage = damage;
-        // this.fireRate = fireRate;
         this.sight = sight;
-        // this.xSight = xPos - (sWidth/2) + 2.5;
-        // this.ySight = yPos - (sWidth/2) + 2.5;
-
 
         if(type == 'BlueRM' || type == 'GreenRM'){
             
@@ -54,7 +49,7 @@ export default class Unit{
             {   
                 health: this.health,
                 damage: this.damage,
-                sWidth: this.fireRange,
+                // sWidth: this.fireRange,
                 fireRate: this.fireRate,
                 fireRange: this.fireRange,
                 type: type,
@@ -72,7 +67,7 @@ export default class Unit{
                 getSight: this.getSight,
                 shoot: this.shoot,
                 getShot: this.getShot,
-                moveToShooter: this.moveToShooter,
+                getCloser: this.getCloser,
                 moveSight: this.moveSight,
                 toggleSight: this.toggleSight,
                 fullStop: this.fullStop,
@@ -83,10 +78,12 @@ export default class Unit{
                 isMoveAnimation: false,
                 startFrame: this.startFrame,
                 collidedWithBuilding: false,
-                //currentObstacle: null,
-                // path:[],
                 isTargetingBuilding: false,
                 attacker: null,
+                orderedTarget: null,
+                ordered: false, 
+                movingToTarget: false,
+                givenOrder: false,
                 
                 
             }
@@ -106,9 +103,8 @@ export default class Unit{
 
         const s = add([
 
-            rect(e.props.sWidth, e.props.sWidth),
-            color(0,0,0,.5),
-            // pos(e.props.pos.x - 72.5, e.props.pos.y - 72.5),
+            rect(e.props.fireRange, e.props.fireRange),
+            color(0,0,0,0),
             pos(e.props.pos.x, e.props.pos.y),
             origin("center"),
             
@@ -127,9 +123,6 @@ export default class Unit{
 
     moveSight(u){
         if(!u) return false;        
-        // u.newsight.pos.x = u.pos.x - (u.sWidth * 0.50);
-        // u.newsight.pos.y = u.pos.y - (u.sWidth * 0.45);
-
         u.newsight.pos.x = u.pos.x;
         u.newsight.pos.y = u.pos.y;
     }
@@ -149,8 +142,8 @@ export default class Unit{
 
     async shoot(u){
 
-        if(!u || u.currentTarget == null || !u.currentTarget.exists()) return false
-
+        // if(!u || u.currentTarget == null || !u.currentTarget.exists()) return false
+        // if(!u || u.currentTarget == null || !u.currentTarget.exists()) return false
         
 
         if(u.type == 'GreenRM' || u.type == 'BlueRM'){
@@ -173,7 +166,7 @@ export default class Unit{
         else{
 
             play("rocket", {
-                volume: 1.0,
+                volume: 0.5,
                 speed: 1,
                 detune: 0,
             });
@@ -209,34 +202,10 @@ export default class Unit{
         }
         
     }
-
-
-    // getBombed(bombed, bomber){
-    //     // bombed.health -= bomber.damage;
-    //     if (bombed.health <= 0){
-    //         destroy(bombed);
-    //     }
-    //     else{
-    //         target.play('pain');
-    //         await wait(0.1);
-    //         target.stop();
-    //         target.frame = target.startFrame;
-    //         // await wait(0.01);
-    //         if(target.is('Building')) return false;
-    //         if(!target.currentTarget){
-    //             // target.fullStop(target);
-    //             // target.currentTarget = shooter;
-    //             target.moveToShooter(target, shooter);
-    //         }
-
-    //     }
-    // }
-
     
     async getShot(target, shooter){
         
         target.health -= shooter.damage;
-        // console.log(target.health)
         if (target.health <= 0){
             destroy(target);
         }
@@ -245,12 +214,9 @@ export default class Unit{
             await wait(0.1);
             target.stop();
             target.frame = target.startFrame;
-            // await wait(0.01);
             if(target.is('Building')) return false;
             if(!target.currentTarget){
-                // target.fullStop(target);
-                // target.currentTarget = shooter;
-                target.moveToShooter(target, shooter);
+                target.getCloser(target, shooter);
             }
         }
 
@@ -267,42 +233,40 @@ export default class Unit{
         u.isMoveAnimation = false;
     }
 
-    moveToShooter(target, shooter){
+    async getCloser(unit, target){
 
-        const distX = target.pos.x - shooter.pos.x;
-        const distY = target.pos.y - shooter.pos.y;
-
-        const absvX = Math.abs(shooter.pos.x - target.pos.x)
-        const absvY = Math.abs(shooter.pos.y - target.pos.y)
-
-        const range = target.fireRange / 2;
-
-        let xS, yS;
+        const distX = unit.pos.x - target.pos.x;
+        const distY = unit.pos.y - target.pos.y;
+        const absvX = Math.abs(target.pos.x - unit.pos.x)
+        const absvY = Math.abs(target.pos.y - unit.pos.y)
+        const range = (unit.fireRange / 2);
+        let xS, yS, extraX, extraY;
 
         if(distX < 0) xS = -1;
         else xS = 1;
-
+        extraX = xS * 20
         if(distY < 0) yS = -1;
         else yS = 1;
+        extraY = yS * 20
 
         if(absvX > range){
 
             if(absvY > range){
-                target.destinationX = target.pos.x - distX + range*xS;
-                target.destinationY = target.pos.y - distY + range*yS;
-                target.isMoving = true;
+                unit.destinationX = unit.pos.x - distX + range*xS - extraX ;
+                unit.destinationY = unit.pos.y - distY + range*yS - extraY;
+                unit.isMoving = true;
             }
             else{
-                target.destinationX = target.pos.x - distX + range*xS;
-                target.destinationY = target.pos.y;
-                target.isMoving = true;
+                unit.destinationX = unit.pos.x - distX + range*xS - extraX;
+                unit.destinationY = unit.pos.y;
+                unit.isMoving = true;
             }
         }
         else if(absvY > range){
-            target.destinationX = target.pos.x;
-            target.destinationY = target.pos.y - distY + range*yS;
-            target.isMoving = true;
-        }
+            unit.destinationX = unit.pos.x;
+            unit.destinationY = unit.pos.y - distY + range*yS - extraY;
+            unit.isMoving = true;
+        }  
     }
 
 }

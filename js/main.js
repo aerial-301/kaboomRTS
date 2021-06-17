@@ -2,12 +2,13 @@
 import {  unitsProperties, buildingsProperties } from "./constants.js";
 import Button from './buttons.js';
 import Building from './building.js';
-import Unit from './troops/units.js';
+import Unit from './units.js';
 
 const k = kaboom({  global: true,
                     clearColor: [0, 0, 0, 1],
                     width:840,
                     height: 570,
+                    
                     // debug: true,
                     // crisp: true,
                 });
@@ -186,13 +187,17 @@ const mainScreen = scene('main', () => {
     const groundWidth = 1400;
     const groundHeight = 900;
 
+
+    // debug.inspect = true;
+
     layers([
-        "obj", "ui",
+        'bg', "obj", "ui",
     ], "obj");
     
     camIgnore([ "ui", ]);
     
     let moveVecX, moveVecY, mousePosX, mousePosY, mag, moveX, moveY, mainTB, BluePrint, currentBluePrint, distanceFromHQ;
+    let playerCamp;
     let rectPosSet = false;
     let oldMousePosX = 0;
     let oldMousePosY = 0;
@@ -210,19 +215,16 @@ const mainScreen = scene('main', () => {
     let camPosX = 1100;
     let camPosY = 815;
     let camS = 1;
+
     // let goldAmount = 20000;
     // let oilAmount = 1400;
-    let byteCoinAmount = 50;
+    let byteCoinAmount = 500;
 
-    // const MinerHealth = 1200;
-    const MinerWidth = 202;
-    const MinerHeight = 82;
-    const MinerCost = 27;
-
-    const CampWidth = 90;
-    const CampHeight = 90;
-    const CampCost = 14;
     let MaxBuildDistance = 200;
+
+    let globalOrder = false;
+
+
 
 
     const ground = add([
@@ -230,8 +232,9 @@ const mainScreen = scene('main', () => {
         sprite('terrain'),
         pos( 0, 0),
         color(.6, .6, .6, 1),
-        layer('obj'),
+        layer('bg'),
     ]);
+
 
     const bottomPanel = add([
         rect(k.width(), bottomPanelHeight),
@@ -276,21 +279,6 @@ const mainScreen = scene('main', () => {
         b.pos.y -= 30;
     });
 
-    on('add', 'enemy-building', (b) => {
-        b.clicks( () => {
-            if(selectedUnits.length > 0){
-                // console.log(`${selectedUnits.length} are attacking building`)
-                for(let i of selectedUnits){
-                    // console.log(`${i} is attacking`)
-                    stopUnits(i);
-                    i.isTargetingBuilding = true;
-                    i.currentTarget = b;
-                    // await wait(0.3);
-                }
-            }
-        });
-    });
-
     on('add', 'Unit', (u) =>{
         wait(0.5, () => {
             u.newsight.paused = true;
@@ -305,15 +293,19 @@ const mainScreen = scene('main', () => {
     });
 
     addLevel([
-        "M   M M     ",
-        "C Q C       ",
-        "            ",
-        "            ",
-        "          q ",
-        "            ",
-    ], {
+        "             ",
+        " M   M M     ",
+        " C       Q   ",
+        "     C       ",
+        "             ",
+        "             ",
+        "          q  ",
+        "             ",
+    ], 
+    
+    {
         width: 119,
-        height: 160,
+        height: 140,
         pos: vec2(0, 0),
         'C': () => {
             return [
@@ -321,6 +313,7 @@ const mainScreen = scene('main', () => {
                     frame: 1,
                 }),
                 solid(),
+                origin("center"),
                 
                 'enemy-building',
                 'enemy-camp',
@@ -339,6 +332,7 @@ const mainScreen = scene('main', () => {
                     frame: 1,
                 }),
                 solid(),
+                origin("center"),
                 'enemy-building',
                 'hqSpectialCase',
                 'Building',
@@ -356,6 +350,7 @@ const mainScreen = scene('main', () => {
                     frame: 1,
                 }),
                 solid(),
+                origin("center"),
                 'enemy-building',
                 'Building',
                 'Killable',
@@ -372,6 +367,7 @@ const mainScreen = scene('main', () => {
                     frame: 0,
                 }),
                 solid(),
+                origin("center"),
                 'player-building',
                 'Building',
                 'Killable',
@@ -384,6 +380,20 @@ const mainScreen = scene('main', () => {
         },
     });
 
+
+
+    action('enemy-building', (b) => {
+        if (b.isClicked()) {
+            if(selectedUnits.length > 0){
+                globalOrder = true;
+                for(let i of selectedUnits){
+                    i.givenOrder = true;
+                    i.orderedTarget = b;
+                    i.ordered = true;
+                }
+            }
+        }
+    });
 
 
     ///////////////////////////////////////
@@ -427,7 +437,8 @@ const mainScreen = scene('main', () => {
             'selection-box',
         ]);
 
-        selection.width = selection.height = 0;
+        selection.width = 0;
+        selection.height = 0;
 
         wait(0.1, () => {
             if (selectedUnits.length > 0) {
@@ -457,21 +468,37 @@ const mainScreen = scene('main', () => {
 
         if (selectionSet) {
 
-            mousePosY = Math.floor(mousePos().y);
-            mousePosX = Math.floor(mousePos().x);
-            const len = selectedUnits.length;
-            const size = Math.floor(Math.sqrt(len));
-
-            for (let i in selectedUnits) {
-                moveX = 5 + mousePosX + i * unitsSpacingX ** (size / len);
-                moveY = mousePosY + (i % size) * unitsSpacingY;
-                moveUnits(selectedUnits[i],
-                    moveX,
-                    moveY);
+            if(!globalOrder) {
+                
+                mousePosY = Math.floor(mousePos().y);
+                mousePosX = Math.floor(mousePos().x);
+                const len = selectedUnits.length;
+                const size = Math.floor(Math.sqrt(len));
+    
+                for (let i in selectedUnits) {
+                    clearUnits(selectedUnits[i]);
+                    moveX = 5 + mousePosX + i * unitsSpacingX ** (size / len);
+                    moveY = mousePosY + (i % size) * unitsSpacingY;
+                    moveUnits(selectedUnits[i],
+                        moveX,
+                        moveY);
+                    
+                }
             }
-        }
 
-        
+            else{
+                await wait(0.1)
+                for (let i of selectedUnits) {
+                    i.getCloser(i, i.orderedTarget);
+                }
+                globalOrder = false;
+            }
+
+
+
+
+        }
+ 
         else if (placingBuilding) {
 
             if(distanceFromHQ > MaxBuildDistance) {
@@ -544,15 +571,25 @@ const mainScreen = scene('main', () => {
         }
 
         if (sight.inSight.length > 0) {
-            sight.inSight = sight.inSight.filter(unit => unit.exists() == true);
-            sight.inSight = sight.inSight.filter(unit => unit.isOverlapped(sight) == true);
+            try {
+                
+                sight.inSight = sight.inSight.filter(unit => unit.exists() == true);
+                sight.inSight = sight.inSight.filter(unit => unit.isOverlapped(sight) == true);
+    
+                if (sight.parent.props.currentTarget != sight.inSight[0]) {
+                    sight.parent.props.currentTarget = sight.inSight[0];
+                }
 
-            if (sight.parent.props.currentTarget != sight.inSight[0]) {
-                sight.parent.props.currentTarget = sight.inSight[0];
+            } catch (error) {
+                console.log(error);
+                sight.inSight = [];
             }
+
+            
         }
+
         else {
-            sight.parent.props.currentTarget = null;
+            if(!sight.parent.props.ordered) sight.parent.props.currentTarget = null;
 
             if (!sight.moved){
                 sight.moved = true
@@ -572,7 +609,7 @@ const mainScreen = scene('main', () => {
                 return false;
             }
 
-            // if(u.moveToShooter(u, u.currentTarget)){
+            // if(u.getCloser(u, u.currentTarget)){
 
                 if (u.readyToFire) {
                     u.readyToFire = false;
@@ -593,8 +630,20 @@ const mainScreen = scene('main', () => {
 
     };
 
+
+
+
     const PlayerAction = async (u) => {
 
+        if(u.givenOrder){
+            u.givenOrder = false;
+            u.isMoving = false;
+            u.newsight.moved = false;
+            u.stop();
+            u.frame = u.startFrame;
+            u.isMoveAnimation = false;
+            u.currentTarget = u.orderedTarget;
+        }
 
         if (u.isMoving) {
 
@@ -606,15 +655,18 @@ const mainScreen = scene('main', () => {
             moveVecX = Math.floor(u.destinationX - u.pos.x);
             moveVecY = Math.floor(u.destinationY - u.pos.y);
 
-            if (Math.abs(moveVecX) < 10) {
-                if (Math.abs(moveVecY) < 10) {
+            if (Math.abs(moveVecX) <= 5) {
+                if (Math.abs(moveVecY) <= 5) {
+
                     u.isMoving = false;
                     u.newsight.moved = false;
-                    u.currentTarget = null;
                     u.stop();
                     u.frame = u.startFrame;
                     u.isMoveAnimation = false;
-                    u.isTargetingBuilding = false;
+                    if(!u.ordered) {
+                        u.currentTarget = null;
+                    }
+
                     return false;
                 }
             }
@@ -624,36 +676,36 @@ const mainScreen = scene('main', () => {
             moveVecY = (moveVecY / mag) * u.speed;
             u.move(moveVecX, moveVecY);
         }
+
+
         else{
-            if(!u.newsight.moved){
-                
+            if(!u.newsight.moved){         
                 u.newsight.moved = true;
                 u.moveSight(u);
+                u.toggleSight(u);
             }
 
-            await wait(0.1);
+            await wait(0.5);
             if (u.currentTarget) {
-
+                
                 if (!u.currentTarget.exists()) {
                     u.currentTarget = null;
                     return false;
                 }
 
-                if (u.currentTarget.is("Building")) {
-                    
-                    u.isTargetingBuilding = true;
-                }
-                else u.isTargetingBuilding = false;
-    
-                if (u.readyToFire) {
-                    u.readyToFire = false;
-                    u.shoot(u);
-                    wait(u.fireRate, () => {
-                        u.readyToFire = true;
-                    });
-                }
-            }
+                
+                if(u.newsight.isOverlapped(u.currentTarget)){
+                    if (u.readyToFire) {
+                        u.readyToFire = false;
+                        u.shoot(u);
+                        wait(u.fireRate, () => {
+                            u.readyToFire = true;
+                        });
+                    }
 
+                }
+                
+            }
 
         }
 
@@ -671,6 +723,7 @@ const mainScreen = scene('main', () => {
             rect(w, h),
             color(1,1,1,0.3),
             pos(mousePos().x, mousePos().y),
+            origin("center"),
             'BluePrint',
             {
                 cost: cost,
@@ -687,11 +740,12 @@ const mainScreen = scene('main', () => {
 
                 if (byteCoinAmount >= buildingsProperties.CAMP.cost){
 
-                    mainTB = new Building('Camp', mousePos().x, mousePos().y, 'player-building');
-                    mainTB.building.use('player-camp');
-                    mainTB.building.clicks( () => {
+                    playerCamp = new Building('Camp', mousePos().x, mousePos().y, 'player-building');
+
+                    playerCamp.building.use('player-camp');
+                    playerCamp.building.clicks( () => {
                         if(sellBuilding){
-                            destroy(MinerB.building);
+                            destroy(playerCamp.building);
 
                         }
                     });
@@ -789,19 +843,19 @@ const mainScreen = scene('main', () => {
     function buildMiner(){
         placingBuilding = true;
         messages.text = 'choose location';
-        addBluePrint(MinerWidth, MinerHeight, 'Miner', MinerCost);
+        addBluePrint(buildingsProperties.MINER.width, buildingsProperties.MINER.height, 'Miner', buildingsProperties.MINER.cost);
     }
 
     function buildCamp(){
         placingBuilding = true;
         messages.text = 'choose location';
-        addBluePrint(CampWidth, CampHeight, 'Camp', CampCost);
+        addBluePrint(buildingsProperties.CAMP.width, buildingsProperties.CAMP.height, 'Camp', buildingsProperties.CAMP.cost);
     }
 
     function recruitRifleMan(){
         if(byteCoinAmount >= unitsProperties.RIFLEMAN.cost){
             byteCoinAmount -= unitsProperties.RIFLEMAN.cost;
-            const z = new Unit('GreenRM', mainTB.pos.x + 15, mainTB.pos.y + CampHeight - 10, 'player-unit');
+            const z = new Unit('GreenRM', playerCamp.pos.x - 20, playerCamp.pos.y + buildingsProperties.CAMP.height / 2, 'player-unit');
             z.getSight(z);
         }
         else{
@@ -812,7 +866,7 @@ const mainScreen = scene('main', () => {
     function recruitRocketMan(){
         if(byteCoinAmount >= unitsProperties.ROCKETMAN.cost){
             byteCoinAmount -= unitsProperties.ROCKETMAN.cost;
-            const z = new Unit('GreenRctM', mainTB.pos.x + 15, mainTB.pos.y + CampHeight - 10, 'player-unit');
+            const z = new Unit('GreenRctM', playerCamp.pos.x - 20, playerCamp.pos.y + buildingsProperties.CAMP.height / 2, 'player-unit');
             z.getSight(z);
         }
         else{
@@ -847,17 +901,18 @@ const mainScreen = scene('main', () => {
 
     });
 
+
+    
     recruitRifleManButton.button.clicks(() => {
 
-        mainTB = get('player-camp')[0];
-        // console.log(mainTB);
+        playerCamp = get('player-camp')[0];
         try {
 
-            if(mainTB.exists()) recruitRifleManButton.act();
+            if(playerCamp) recruitRifleManButton.act();
             else messages.text = 'Camp required';
             
         } catch (error) {
-            // console.log(error);
+            console.log(error);
             messages.text = 'Camp required'
         }
 
@@ -865,14 +920,13 @@ const mainScreen = scene('main', () => {
 
     recruitRocketManButton.button.clicks(() => {
 
-        mainTB = get('player-camp')[0];
+        playerCamp = get('player-camp')[0];
         try {
-
-            if(mainTB.exists()) recruitRocketManButton.act();
+            if(playerCamp) recruitRocketManButton.act();
             else messages.text = 'Camp required';
 
         } catch (error) {
-            // console.log(error);
+            console.log(error);
             messages.text = 'Camp required'
         }
 
@@ -917,10 +971,10 @@ const mainScreen = scene('main', () => {
     //     s.parent.hasTarget = true;
     // });
 
-    // overlaps('enemy-sight', 'player-building', (s, e) =>{
-    //     s.inSight.push(e);
-    //     s.parent.hasTarget = true;
-    // });
+    overlaps('enemy-sight', 'player-building', (s, e) =>{
+        s.inSight.push(e);
+        s.parent.hasTarget = true;
+    });
 
 
 
@@ -936,8 +990,6 @@ const mainScreen = scene('main', () => {
     mouseDown(MouseDown);
     mouseRelease(MouseRelease);
     ground.clicks(GroundIsClicked);
-
-
 
 
     on('add', 'rocket', (u) => {
@@ -1034,10 +1086,6 @@ const mainScreen = scene('main', () => {
         }
     });
 
-
-
-
-
     const moveUnits = function(unit, mx, my){
         unit.destinationX = mx;
         unit.destinationY = my;
@@ -1061,15 +1109,26 @@ const mainScreen = scene('main', () => {
     }
 
     function stopUnits(u){
-        
+        u.newsight.inSight = [];
         u.isMoving = false;
         u.newsight.moved = false;
         u.currentTarget = null;
-        u.isTargetingBuilding = false;
+        u.ordered = false;
+        u.orderedTarget = null;
         u.stop();
         u.frame = u.startFrame;
         u.isMoveAnimation = false;
     }
+
+    function clearUnits(u){
+        u.newsight.inSight = [];
+        u.newsight.moved = false;
+        u.currentTarget = null;
+        u.ordered = false;
+        u.orderedTarget = null;
+        u.movingToTarget = false;
+    }
+
 
 
 
@@ -1082,15 +1141,15 @@ const mainScreen = scene('main', () => {
 
     action('enemy-camp', async (b) => {
 
-        if(!eSpawned){
+        // if(!eSpawned){
 
-            eSpawned = true;
+        //     eSpawned = true;
 
-            await wait(rand(14, 26));
-            const u = new Unit('BlueRctM',b.pos.x - 10, b.pos.y + 10, 'enemy-unit')
-            u.getSight(u)
-            eSpawned = false;
-        }
+        //     await wait(rand(14, 26));
+        //     const u = new Unit('BlueRctM',b.pos.x - 10, b.pos.y + 10, 'enemy-unit')
+        //     u.getSight(u)
+        //     eSpawned = false;
+        // }
     });
 
     action('enemy-unit', async (e) => {
@@ -1155,6 +1214,11 @@ const mainScreen = scene('main', () => {
             }
 
     });
+
+
+
+
+
 
 
 
@@ -1300,29 +1364,50 @@ const mainScreen = scene('main', () => {
         debug.paused = !debug.paused;
     });
 
+    let somearray = [];
+
+    // keyPress('t', () => {
+    //     // somearray = [];
+    //     const c = get('player-camp');
+    //     console.log(c)
+    // });
+
+    // action('player-unit', (u) => {
+
+    //     status.text = `u.currentTarget = ${u.currentTarget}`;
+    //     // status2.text = ` = ${u(u)}`;
+    //     status3.text = `u.orderedTarget = ${u.orderedTarget}`;
+    //     status4.text = `givenOrder = ${u.givenOrder}`;
+
+
+    // });
+
     // const status = add([
-    //     text('status', 12),
+    //     text('status', 12,
+    //     {
+    //         width: 320,
+    //     }),
     //     pos(20,200),
     //     layer('ui')
-    // ])
+    // ]);
 
     // const status2 = add([
     //     text('status2', 12),
     //     pos(20,220),
     //     layer('ui')
-    // ])
+    // ]);
 
     // const status3 = add([
     //     text('status3', 12),
     //     pos(20,240),
     //     layer('ui')
-    // ])
+    // ]);
 
     // const status4 = add([
     //     text('status4', 12),
     //     pos(20,260),
     //     layer('ui')
-    // ])
+    // ]);
 
     // action(() => {
     //     status4.text = debug.fps();

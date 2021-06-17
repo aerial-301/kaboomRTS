@@ -23,6 +23,7 @@ export default class Building {
             sprite(type, {
                 frame: this.startFrame,
             }),
+            origin("center"),
             solid(),
             tag,
             'Building',
