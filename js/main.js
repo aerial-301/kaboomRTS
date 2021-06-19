@@ -4,7 +4,6 @@ export const k = kaboom({  global: true,
     height: 570,
 });
 
-// loadSprite("terrain", "./assets/GroundTerrain.jpeg");
 loadSprite("terrain", "./assets/BG2000x900.jpeg");
 
 loadSprite("GreenTurret", "./assets/TurretSprite.png", 
