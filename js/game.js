@@ -12,6 +12,22 @@ const mainMenu = scene('root', () => {
     startButton.button.clicks(() => {
         go('main');
     });
+
+    add([
+        text(`
+        WASD: move cam
+        E: zoom in
+        Q: zoom out
+        R: reset zoom
+
+        X: stop selected units
+        C: clear selection
+
+        P: pause
+        `, 18),
+        pos(k.width() / 2 - 300, k.height() / 2),
+    ])
+
 });
 
 
@@ -1416,14 +1432,6 @@ const mainScreen = scene('main', () => {
 
     let pausedScreen, pausedText;
 
-    keyPress('i', () => {
-        debug.inspect = !debug.inspect
-    });
-
-    keyPress('g', () => {
-        destroy(get('enemy-hq')[0])
-    });
-
     keyPress('p', () => {
         debug.paused = !debug.paused;    
 
@@ -1640,8 +1648,3 @@ const mainScreen = scene('main', () => {
 });
 
 start('root');
-// start('main');
-
-
-
-
