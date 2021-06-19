@@ -25,7 +25,7 @@ export const unitsProperties = {
 
 export const buildingsProperties = {
     HQ: {
-        health: 300,
+        health: 3000,
     },
 
     CAMP: {
