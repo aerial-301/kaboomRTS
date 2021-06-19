@@ -4,7 +4,7 @@ export default class Building {
 
     constructor(type, xPos, yPos, tag){
 
-        this.type = type
+        this.type = type;
 
         if(type == 'Camp'){
             this.health = buildingsProperties.CAMP.health;
@@ -12,11 +12,14 @@ export default class Building {
         else if (type == 'Miner'){
             this.health = buildingsProperties.MINER.health;
         }
+        else if (type == 'GreenTurret' || type == 'BlueTurret'){
+            this.health = buildingsProperties.TURRET.health;
+        }
 
         if(tag == 'player-building'){
             this.startFrame = 0;
         }
-        else this.startFrame = 1;
+        else if(type == 'BlueTurret') this.startFrame = 3;
 
         this.building = add([
             pos(xPos, yPos),
@@ -28,15 +31,42 @@ export default class Building {
             tag,
             'Building',
             'Killable',
+            (type == 'GreenTurret' || type == 'BlueTurret') ? 'Turret' : '',
             {   
                 health: this.health,
-                gate_x: 380,
-                gate_y: 430,
+                baseHealth: this.health,
+                healthBar: this.healthBar,
                 isHighlighted: false,
                 startFrame: this.startFrame,
+                owner: tag,
+                type: type,
+                // isDamaged: false,
+                
+            }
+
+        ]);
+
+
+        this.healthBar = add([
+            rect(100, 20),
+            origin('center'),
+            pos(xPos, yPos - 40),
+            color(0, 1, 0),
+            'HB',
+            {
+                parent: this.building,
             }
         ]);
 
     }
 
 }
+
+
+
+
+
+
+
+
+

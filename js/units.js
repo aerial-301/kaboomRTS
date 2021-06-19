@@ -10,6 +10,7 @@ export default class Unit{
         this.tag = tag;
         this.sight = sight;
 
+        
         if(type == 'BlueRM' || type == 'GreenRM'){
             
             this.health = unitsProperties.RIFLEMAN.health;
@@ -49,18 +50,14 @@ export default class Unit{
             {   
                 health: this.health,
                 damage: this.damage,
-                // sWidth: this.fireRange,
                 fireRate: this.fireRate,
                 fireRange: this.fireRange,
                 type: type,
-                speed: 300,
-                selected: false,
+                speed: 100,
                 isHighlighted: false,
-                isMoving: false,
-                destinationX: xPos - rand(20, 40),
-                destinationY: yPos + rand(-20, 20),
-                hasTarget: false,
-                isFiring: false,
+                isMoving: true,
+                destinationX: xPos + rand(-20, 20),
+                destinationY: yPos + rand(30, 55),
                 readyToFire: true,
                 currentTarget: null,
                 sightOwner: tag,
@@ -70,20 +67,15 @@ export default class Unit{
                 getCloser: this.getCloser,
                 moveSight: this.moveSight,
                 toggleSight: this.toggleSight,
-                fullStop: this.fullStop,
-                xOrigin: 0,
-                yOrigin: 0,
                 isIdle: false,
-                sightToggled: false,
                 isMoveAnimation: false,
                 startFrame: this.startFrame,
                 collidedWithBuilding: false,
-                isTargetingBuilding: false,
-                attacker: null,
                 orderedTarget: null,
-                ordered: false, 
-                movingToTarget: false,
+                ordered: false,
                 givenOrder: false,
+                validTargets: [],
+                seeking: false,
                 
                 
             }
@@ -142,9 +134,7 @@ export default class Unit{
 
     async shoot(u){
 
-        // if(!u || u.currentTarget == null || !u.currentTarget.exists()) return false
-        // if(!u || u.currentTarget == null || !u.currentTarget.exists()) return false
-        
+        if(!u || u.currentTarget == null || !u.currentTarget.exists()) return false
 
         if(u.type == 'GreenRM' || u.type == 'BlueRM'){
 
@@ -153,7 +143,7 @@ export default class Unit{
             play("shoot", {
                 volume: 1.0,
                 speed: 1,
-                detune: 0,
+                detune: 100 * rand(-2, 2),
             });
             
             u.play('fire');
@@ -165,10 +155,12 @@ export default class Unit{
 
         else{
 
+            // await wait(rand(0, 0.3))
+
             play("rocket", {
-                volume: 0.5,
+                volume: 0.2,
                 speed: 1,
-                detune: 0,
+                detune: 100 * rand(-1, 1),
             });
 
             const r = add([
@@ -183,8 +175,8 @@ export default class Unit{
                     yMag:-500,
                     xMag: 0.02,
                     xInc: 0.002,
-                    tX: u.currentTarget.pos.x,
-                    tY: u.currentTarget.pos.y,
+                    tX: u.currentTarget.pos.x + rand(-70, 70),
+                    tY: u.currentTarget.pos.y + rand(-70, 70),
                     deg:0,
                     adj: false,
                     peaked: false,
@@ -207,31 +199,25 @@ export default class Unit{
         
         target.health -= shooter.damage;
         if (target.health <= 0){
-            destroy(target);
+            if(target) destroy(target);
+            if(target.newsight) destroy(target.newsight)
         }
         else{
             target.play('pain');
             await wait(0.1);
             target.stop();
             target.frame = target.startFrame;
-            if(target.is('Building')) return false;
-            if(!target.currentTarget){
+            if(target.is('Building')) {
+                // target.isDamaged = true;
+                return false;
+            }
+            else if(!target.currentTarget && !target.ordered){
                 target.getCloser(target, shooter);
             }
         }
 
     }
 
-
-    fullStop(u){
-        u.isMoving = false;
-        u.newsight.moved = false;
-        u.currentTarget = null;
-        u.isTargetingBuilding = false;
-        u.stop();
-        u.frame = u.startFrame;
-        u.isMoveAnimation = false;
-    }
 
     async getCloser(unit, target){
 
