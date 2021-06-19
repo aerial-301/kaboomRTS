@@ -220,6 +220,8 @@ export default class Unit{
 
 
     async getCloser(unit, target){
+        if(!target) return false;
+        if(!unit) return false;
 
         const distX = unit.pos.x - target.pos.x;
         const distY = unit.pos.y - target.pos.y;
