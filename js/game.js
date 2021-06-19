@@ -30,7 +30,6 @@ const mainMenu = scene('root', () => {
 
 });
 
-
 ///////////////////////////////////////
 //
 //                  Main Scene
@@ -46,10 +45,11 @@ const mainScreen = scene('main', () => {
         "obj",
         "ind",
         "ui",
+        "tips",
 
     ], "obj");
     
-    camIgnore([ "ui", ]);
+    camIgnore([ "tips", "ui" ]);
     
     let moveVecX, moveVecY, mousePosX, mousePosY, mag, moveX, moveY, mainTB, BluePrint, currentBluePrint, distanceFromHQ;
     let playerCamp;
@@ -73,10 +73,14 @@ const mainScreen = scene('main', () => {
     // let goldAmount = 20000;
     // let oilAmount = 1400;
     let byteCoinAmount = 70;
-    // let MaxBuildDistance = 250;
     let MaxBuildDistance = 400;
     let globalOrder = false;
-
+    let time = 0;
+    let kills = 0;
+    let deaths = 0;
+    let mined = 0;
+    let totalMined = 0;
+    let h,m,s;
 
 
 
@@ -187,11 +191,24 @@ const mainScreen = scene('main', () => {
         })
     });
 
+    on('destroy', 'enemy-unit', () => {
+        kills += 1;
+    });
+
+    on('destroy', 'player-unit', () => {
+        deaths += 1;
+    });
+
+    loop(1, () => {
+        time += 1;
+        s = `${time%60}`.padStart(2, '0');
+        m = `${Math.floor((time/60)%60)}`.padStart(2, '0');
+        h = `${Math.floor((time/3600)%60)}`.padStart(2, '0');
+    })
+
     resourcesDisplay.action( async () => {
         await wait(0.3);
-        // resourcesDisplay.text = `Gold: ${goldAmount}     Oil: ${oilAmount}     ByteCoin: ${byteCoinAmount}`;
-        resourcesDisplay.text = `ByteCoin: ${byteCoinAmount}`;
-
+        resourcesDisplay.text = `ByteCoin: ${byteCoinAmount}                                               ${h}:${m}:${s}`;
 
         if(byteCoinAmount < buildingsProperties.TURRET.cost){
             buildTurretButton.button.color = rgb(0.5, 0, 0);
@@ -222,15 +239,15 @@ const mainScreen = scene('main', () => {
 
     addLevel([
         "                    ",
-        "  M                 ",
+        " C   M              ",
         "    T  T            ",
         "  M                 ",
-        "       T         q  ",
-        "    C               ",
-        "  Q    T            ",
-        "    C               ",
-        "  T    T            ",
-        "  M M               ",
+        "    C  T         q  ",
+        "  Q T  T            ",
+        "   T   T            ",
+        " T  T               ",
+        " C     T            ",
+        "    M               ",
     ], 
     
     {
@@ -497,6 +514,7 @@ const mainScreen = scene('main', () => {
         }
     });
 
+
     action('Turret', async (t) => {
         await wait(1)
         if(!t.newsight.toggled){
@@ -600,13 +618,13 @@ const mainScreen = scene('main', () => {
             }
 
 
-            if(u.collidedWithBuilding){
-                moveVecY = Math.floor(u.pos.x - u.destinationX);
-            }
-            else moveVecY = Math.floor(u.destinationY - u.pos.y);
+            // if(u.collidedWithBuilding){
+            //     moveVecY = Math.floor(u.pos.x - u.destinationX);
+            // }
+            // else moveVecY = Math.floor(u.destinationY - u.pos.y);
 
             moveVecX = Math.floor(u.destinationX - u.pos.x);
-            // moveVecY = Math.floor(u.destinationY - u.pos.y);
+            moveVecY = Math.floor(u.destinationY - u.pos.y);
 
             if (Math.abs(moveVecX) <= 5) {
                 if (Math.abs(moveVecY) <= 5) {
@@ -736,9 +754,11 @@ const mainScreen = scene('main', () => {
                     MinerB.building.action( async () => {
                         if(!MinerB.building.isMining){    
                             MinerB.building.isMining = true;
-                            await wait(23);
-                            if(rand(0,1) > 0.1) byteCoinAmount += choose([5, 7, 13]);
-                            else byteCoinAmount += choose([17, 23, 31]);
+                            await wait(19 + rand(1, 5));
+                            if(rand(0,1) > 0.1) mined = choose([5, 7, 12]);
+                            else mined = choose([17, 23, 31]);
+                            byteCoinAmount += mined;
+                            totalMined += mined;
                             MinerB.building.isMining = false;
 
                         }
@@ -866,8 +886,8 @@ const mainScreen = scene('main', () => {
     const buildTurretButton = new Button(110, buildMinerButton.y - buildMinerButton.button.height - 4, buildTurret, `Build turret $${buildingsProperties.TURRET.cost}`, 200, 27, 11)
 
 
-    const recruitRocketManButton = new Button(380,  messages.pos.y - 20, recruitRocketMan, `Recruit rocketMan $${unitsProperties.ROCKETMAN.cost}`, 270, 27, 11);
-    const recruitRifleManButton = new Button(380,  recruitRocketManButton.y - recruitRocketManButton.button.height - 4, recruitRifleMan, `Recruit rifleMan $${unitsProperties.RIFLEMAN.cost}`, 270, 27, 11);
+    const recruitRocketManButton = new Button(580,  messages.pos.y - 26, recruitRocketMan, `Recruit rocketMan $${unitsProperties.ROCKETMAN.cost}`, 270, 44, 12);
+    const recruitRifleManButton = new Button(580,  recruitRocketManButton.y - recruitRocketManButton.button.height - 4, recruitRifleMan, `Recruit rifleMan $${unitsProperties.RIFLEMAN.cost}`, 270, 44, 12);
     
     buildMinerButton.button.clicks( async () => {
         await wait(0.1);
@@ -924,8 +944,6 @@ const mainScreen = scene('main', () => {
         }
 
     });
-
-
 
     ///////////////////////////////////////
     //
@@ -1251,6 +1269,7 @@ const mainScreen = scene('main', () => {
             for(let camp of enemyCamps){
 
                 if(camp){
+                    if(!camp.exists()) return false;
 
                     for(let k = 0; k < rand(5, 13); k++){
                         if(rand(0,1) > 0.2){
@@ -1315,15 +1334,20 @@ const mainScreen = scene('main', () => {
                 if(e.newsight.inSight.length == 0 && !e.currentTarget){
                     if(!e.seeking){
                         e.seeking = true
+
+                        if(rand(0,1) > 0.5){
+
+                            if(get('player-unit').length > 0) e.getCloser(e, choose(get('player-unit')))
+                        }
                         
-                        if(get('player-turret').length > 0){
+                        else if(get('player-turret').length > 0){
                             e.getCloser(e, choose(get('player-turret')))
                         }
                         else if(get('player-building').length > 0){
                             e.getCloser(e, choose(get('player-building')))
                         }
                         
-                        await wait(7);
+                        await wait(3);
                         
                         e.seeking = false;
                     }
@@ -1365,6 +1389,9 @@ const mainScreen = scene('main', () => {
             if(!lost){
                 lost = true;
                 // debug.paused = true;
+                for(let i of get('player-building')) destroy(i)
+                for(let i of get('player-unit')) destroy(i)
+                byteCoinAmount = 0;
                 add([
                     rect(k.width(), k.height()),
                     pos(0,0),
@@ -1381,11 +1408,15 @@ const mainScreen = scene('main', () => {
                 ]);
 
 
-                const quit = new Button(k.width() / 2, k.height() / 2 + 50, function (){go('root')}, 'Quit', 200, 100, 32)
+                wait(1, () => {
 
-                quit.button.clicks(() => {
-                    quit.act()
-                })
+                    const quit = new Button(k.width() / 2, k.height() / 2 + 50, function (){go('root')}, 'Quit', 200, 100, 32)
+    
+                    quit.button.clicks(() => {
+                        quit.act()
+                    })
+                });
+
 
             }
         }
@@ -1393,11 +1424,13 @@ const mainScreen = scene('main', () => {
         if(get('enemy-hq').length == 0){
             if(!won){
                 won = true;
+                for(let i of get('enemy-building')) destroy(i)
+                for(let i of get('enemy-unit')) destroy(i)
                 // debug.paused = true;
                 add([
                     rect(k.width(), k.height()),
                     pos(0,0),
-                    color(0, .3,0,0.5),
+                    color(0, 0, 0, 0.75),
                     layer('ui'),
                 ]);
                 
@@ -1406,13 +1439,37 @@ const mainScreen = scene('main', () => {
                     color(0, 1, 0),
                     origin('center'),
                     layer('ui'),
-                    pos(k.width()/2, k.height()/2 - 100),
+                    pos(k.width()/2, k.height()/2 - 150),
                 ]);
 
-                const quit = new Button(k.width() / 2, k.height() / 2 + 50, function (){go('root')}, 'Quit', 200, 100, 32)
+                const s = `${time%60}`.padStart(2, '0');
+                const m = `${Math.floor((time/60)%60)}`.padStart(2, '0');
+                const h = `${Math.floor((time/3600)%60)}`.padStart(2, '0');
 
-                quit.button.clicks(() => {
-                    quit.act()
+                add([
+                    text(`
+                    Enemy units killed: ${kills}
+
+                    Units lost: ${deaths}
+
+                    Total mined Bytecoins: ${totalMined}
+
+                    Elapsed time: ${h}:${m}:${s}
+                    `.padStart(2, "0"), 16),
+                    origin('left'),
+                    layer('ui'),
+                    pos( - 140, k.height() / 2 )
+
+                ])
+
+                wait(1, () => {
+
+                    const quit = new Button(k.width() / 2, k.height() / 2 + 150, function (){go('root')}, 'Quit', 120, 60, 18)
+    
+                    quit.button.clicks(() => {
+                        quit.act()
+                    })
+
                 })
 
             }
@@ -1455,6 +1512,11 @@ const mainScreen = scene('main', () => {
                 pos(k.width() / 2, k.height() / 2)
             ])
         }
+    });
+
+
+    keyPress('g', () => {
+        destroy(get('enemy-hq')[0]);
     });
 
     action(() => {
