@@ -5,7 +5,6 @@ import Button from './buttons.js';
 import Building from './building.js';
 import Unit from './units.js';
 
-
 const mainMenu = scene('root', () => {
 
     const startButton = new Button(k.width() / 2, k.height() / 2 - 100, () => go('main'), 'Start', 200, 100, 24);
@@ -38,8 +37,6 @@ const mainMenu = scene('root', () => {
 
 const mainScreen = scene('main', () => {
 
-    // debug.inspect = true;
-
     layers([
         'bg',
         "obj",
@@ -52,7 +49,7 @@ const mainScreen = scene('main', () => {
     camIgnore([ "tips", "ui" ]);
     
     let moveVecX, moveVecY, mousePosX, mousePosY, mag, moveX, moveY, mainTB, BluePrint, currentBluePrint, distanceFromHQ;
-    let playerCamp;
+    let playerCamp, camPosX, camPosY, h, m, s;
     let rectPosSet = false;
     let oldMousePosX = 0;
     let oldMousePosY = 0;
@@ -60,18 +57,12 @@ const mainScreen = scene('main', () => {
     let selectionSet = false;  
     let placingBuilding = false;
     let sellBuilding = false;
-    // const unitsSpacingX = 80; 
-    // const unitsSpacingY = 10;
     const unitsSpacingX = 530; 
     const unitsSpacingY = 20;
     const bottomPanelHeight = 120;
     const topFrameHeight = 40;
     let groups = [[],[],[]];
-    let camPosX;
-    let camPosY;
     let camS = 1;
-    // let goldAmount = 20000;
-    // let oilAmount = 1400;
     let byteCoinAmount = 70;
     let MaxBuildDistance = 400;
     let globalOrder = false;
@@ -80,18 +71,14 @@ const mainScreen = scene('main', () => {
     let deaths = 0;
     let mined = 0;
     let totalMined = 0;
-    let h,m,s;
-
-
 
     const ground = add([
-        // rect(1400, 900),
+        
         sprite('terrain'),
         pos( 0, 0),
         color(.6, .6, .6, 1),
         layer('bg'),
     ]);
-
 
     const bottomPanel = add([
         rect(k.width(), bottomPanelHeight),
@@ -137,7 +124,6 @@ const mainScreen = scene('main', () => {
             u.newsight.hidden = true;
         })
     });
-
 
     on('add', 'Building', (k) => {
         
@@ -377,7 +363,6 @@ const mainScreen = scene('main', () => {
     camPosY = pHQ.pos.y;
 
 
-
     ///////////////////////////////////////
     //
     //                  Mouse Events
@@ -502,35 +487,6 @@ const mainScreen = scene('main', () => {
         }
     };
 
-
-    action('Unit', async (unit) =>{
-        if(!unit.isMoving){
-            if(!unit.newsight.toggled){
-                unit.newsight.toggled = true;
-                unit.toggleSight(unit);
-                await wait(3);
-                unit.newsight.toggled = false;
-            }
-        }
-    });
-
-
-    action('Turret', async (t) => {
-        await wait(1)
-        if(!t.newsight.toggled){
-            t.newsight.toggled = true;
-            // t.newsight.hidden = false;
-            
-            toggleTurretSight(t);
-            await wait(1.5);
-            // t.newsight.hidden = true;
-            t.newsight.toggled = false;
-        }
-
-    });
-
-
-
     const SightAction = (sight) => {
 
         if(sight.parent.props){
@@ -570,6 +526,28 @@ const mainScreen = scene('main', () => {
             }
         }
     };
+
+    action('Unit', async (unit) =>{
+        if(!unit.isMoving){
+            if(!unit.newsight.toggled){
+                unit.newsight.toggled = true;
+                unit.toggleSight(unit);
+                await wait(3);
+                unit.newsight.toggled = false;
+            }
+        }
+    });
+
+    action('Turret', async (t) => {
+        await wait(1)
+        if(!t.newsight.toggled){
+            t.newsight.toggled = true;  
+            toggleTurretSight(t);
+            await wait(1.5);
+            t.newsight.toggled = false;
+        }
+
+    });
         
     const EnemyUnits = async (u) => {
             
@@ -883,9 +861,7 @@ const mainScreen = scene('main', () => {
 
     const buildCampButton = new Button(110, messages.pos.y  - 20, buildCamp, `Build camp $${buildingsProperties.CAMP.cost}`, 200, 27, 11);
     const buildMinerButton = new Button(110,  buildCampButton.y - buildCampButton.button.height - 4, buildMiner, `Build miner $${buildingsProperties.MINER.cost}`, 200, 27, 11);
-    const buildTurretButton = new Button(110, buildMinerButton.y - buildMinerButton.button.height - 4, buildTurret, `Build turret $${buildingsProperties.TURRET.cost}`, 200, 27, 11)
-
-
+    const buildTurretButton = new Button(110, buildMinerButton.y - buildMinerButton.button.height - 4, buildTurret, `Build turret $${buildingsProperties.TURRET.cost}`, 200, 27, 11);
     const recruitRocketManButton = new Button(580,  messages.pos.y - 26, recruitRocketMan, `Recruit rocketMan $${unitsProperties.ROCKETMAN.cost}`, 270, 44, 12);
     const recruitRifleManButton = new Button(580,  recruitRocketManButton.y - recruitRocketManButton.button.height - 4, recruitRifleMan, `Recruit rifleMan $${unitsProperties.RIFLEMAN.cost}`, 270, 44, 12);
     
@@ -1028,7 +1004,6 @@ const mainScreen = scene('main', () => {
             }
         }
     });
-
 
     action('HB', async (hb) => {
 
@@ -1185,7 +1160,6 @@ const mainScreen = scene('main', () => {
         u.ordered = false;
         u.orderedTarget = null;
     }
-
 
     function TurretGetSight(e){
         let sTag;
@@ -1480,7 +1454,6 @@ const mainScreen = scene('main', () => {
 
 
 
-
     ///////////////////////////////////////
     //
     //                  Keyboard Events
@@ -1515,9 +1488,9 @@ const mainScreen = scene('main', () => {
     });
 
 
-    keyPress('g', () => {
-        destroy(get('enemy-hq')[0]);
-    });
+    // keyPress('g', () => {
+    //     destroy(get('enemy-hq')[0]);
+    // });
 
     action(() => {
 
@@ -1620,92 +1593,7 @@ const mainScreen = scene('main', () => {
         }
     });
 
-    ///////////////////////////////////////
-    //
-    //                  For debugging
-    //
-    ///////////////////////////////////////
-
-
-    // action('player-unit', (u) => {
-    //     status.text = `u.currentTarget = ${u.currentTarget}`;
-    //     status2.text = ` = ${u(u)}`;
-    //     status3.text = `u.orderedTarget = ${u.orderedTarget}`;
-    //     status4.text = `givenOrder = ${u.givenOrder}`;
-    // });
-
-    // const status = add([
-    //     text('status', 12,
-    //     {
-    //         width: 320,
-    //     }),
-    //     pos(20,200),
-    //     layer('ui')
-    // ]);
-
-    // const status2 = add([
-    //     text('status2', 12),
-    //     pos(20,220),
-    //     layer('ui')
-    // ]);
-
-    // const status3 = add([
-    //     text('status3', 12),
-    //     pos(20,240),
-    //     layer('ui')
-    // ]);
-
-    // const status4 = add([
-    //     text('status4', 12),
-    //     pos(20,260),
-    //     layer('ui')
-    // ]);
-
-    // action(() => {
-    //     status4.text = debug.fps();
-    // })
-
-    // let oneTimeRun = false;
-    // let oneTimeRun2 = false;
-
-    // keyPress('b', () => {
-    //     oneTimeRun = false;
-    //     oneTimeRun2 = false;
-    // })
-
-    // keyPress('h', () => {
-    //     const a = get('Unit');
-    //     for(let i of a){
-    //         i.newsight.paused = !i.newsight.paused;
-    //         i.newsight.hidden = !i.newsight.hidden;
-    //         console.log(i.newsight);
-    //     }
-    // });
-
-    // keyPress('.', () =>{
-    //     if(selectedUnits.length > 0){
-    //         for(let i of selectedUnits){
-    //             destroy(i);
-    //         }
-    //         selectedUnits = [];
-    //         selectionSet = false
-    //     }
-    // });
-
-    // keyPress('u', () =>{
-    //     const x = new Unit('BlueRM', rand(1800, 600), rand(480, 530), 'enemy-unit');
-    //     x.getSight(x);
-    //     // x.props.action(() =>{
-    //     //     // status2.text = `isMoving = ${x.props.isMoving}`
-    //     //     // status3.text = `isIdle = ${x.props.isIdle}`
-    //     //     // status4.text = `currentTarget = ${x.props.currentTarget}`
-    //     // });
-    //     const y = new Unit('BlueRctM', rand(500, 600), rand(480, 530), 'enemy-unit');
-    //     y.getSight(y);
-
-    // });
-
-    /////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////
 
 });
 
