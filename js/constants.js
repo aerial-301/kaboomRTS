@@ -1,10 +1,3 @@
-
-
-
-// export default {unitsProperties, buildingsProperties};
-
-
-
 export const unitsProperties = {
     RIFLEMAN: {
         cost: 7,
@@ -51,8 +44,3 @@ export const buildingsProperties = {
         damage: 4,
     }
 }
-
-
-
-
-// export default {unitsProperties, buildingsProperties};
