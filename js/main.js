@@ -6,6 +6,16 @@ export const k = kaboom({  global: true,
 
 loadSprite("terrain", "./assets/BG2000x900.jpeg");
 
+
+
+loadSprite("turretB", "./assets/turretButton.png");
+loadSprite("minerB", "./assets/minerButton.png");
+loadSprite("campB", "./assets/campButton.png");
+loadSprite("rmB", "./assets/rfButton.png");
+loadSprite("rctmB", "./assets/rctButton.png");
+
+
+
 loadSprite("GreenTurret", "./assets/TurretSprite.png", 
 {
     sliceX: 3,
@@ -51,6 +61,7 @@ loadSprite("BlueTurret", "./assets/TurretSprite.png",
 loadSprite("BottomPanel", "./assets/BottomPanel.jpeg");
 loadSprite("TopFrame", "./assets/TopFrame.jpeg");
 loadSound("Tshoot", "./assets/turret1.ogg");
+loadSound("buildS", "./assets/buildSound.ogg");
 loadSound("shoot", "./assets/GunShot1.ogg");
 loadSound("rocket", "./assets/RocketShot.ogg");
 loadSound("exp", "./assets/exp.ogg");
@@ -200,6 +211,8 @@ loadSprite("BlueRctM", "./assets/RcktMsprites.png",
             },
         }
 );
+
+
 
 
 
