@@ -193,7 +193,7 @@ const mainScreen = scene('main', () => {
     })
 
     resourcesDisplay.action( async () => {
-        await wait(0.3);
+
         resourcesDisplay.text = `ByteCoin: ${byteCoinAmount}                                               ${h}:${m}:${s}`;
 
         if(byteCoinAmount < buildingsProperties.TURRET.cost){
@@ -212,24 +212,26 @@ const mainScreen = scene('main', () => {
         }
         else buildMinerButton.button.color = rgb(0, 0.5, 0);
 
-        if(byteCoinAmount < unitsProperties.RIFLEMAN.cost){
+        if(byteCoinAmount < unitsProperties.RIFLEMAN.cost || get('player-camp').length == 0){
             recruitRifleManButton.button.color = rgb(0.5, 0, 0);
         }
         else recruitRifleManButton.button.color = rgb(0, 0.5, 0);
 
-        if(byteCoinAmount < unitsProperties.ROCKETMAN.cost){
+        if(byteCoinAmount < unitsProperties.ROCKETMAN.cost || get('player-camp').length == 0){
             recruitRocketManButton.button.color = rgb(0.5, 0, 0);
         }
         else recruitRocketManButton.button.color = rgb(0, 0.5, 0);
+
+        await wait(0.2);
     });
 
     addLevel([
         "                    ",
         " C   M              ",
         "    T  T            ",
-        "  M                 ",
-        "    C  T         q  ",
-        "  Q T  T            ",
+        "  M C               ",
+        "   T   T         q  ",
+        "  Q    T            ",
         "   T   T            ",
         " T  T               ",
         " C     T            ",
@@ -270,7 +272,7 @@ const mainScreen = scene('main', () => {
                 'Building',
                 'Killable',
                 {   
-                    health: buildingsProperties.HQ.health,
+                    health: buildingsProperties.HQ.health * 2,
                     startFrame: 1,
                 }
             ];
@@ -700,6 +702,7 @@ const mainScreen = scene('main', () => {
                     });
 
                     byteCoinAmount -= buildingsProperties.CAMP.cost;
+                    play('buildS');
                     return true;
 
                 }
@@ -743,6 +746,7 @@ const mainScreen = scene('main', () => {
                     });
 
                     byteCoinAmount -= buildingsProperties.MINER.cost;
+                    play('buildS');
                     return true;
 
                 }
@@ -769,6 +773,7 @@ const mainScreen = scene('main', () => {
                     });
 
                     byteCoinAmount -= buildingsProperties.TURRET.cost;
+                    play('buildS');
                     return true;
                 }
                 else {
@@ -859,11 +864,20 @@ const mainScreen = scene('main', () => {
         }
     }
 
-    const buildCampButton = new Button(110, messages.pos.y  - 20, buildCamp, `Build camp $${buildingsProperties.CAMP.cost}`, 200, 27, 11);
-    const buildMinerButton = new Button(110,  buildCampButton.y - buildCampButton.button.height - 4, buildMiner, `Build miner $${buildingsProperties.MINER.cost}`, 200, 27, 11);
-    const buildTurretButton = new Button(110, buildMinerButton.y - buildMinerButton.button.height - 4, buildTurret, `Build turret $${buildingsProperties.TURRET.cost}`, 200, 27, 11);
-    const recruitRocketManButton = new Button(580,  messages.pos.y - 26, recruitRocketMan, `Recruit rocketMan $${unitsProperties.ROCKETMAN.cost}`, 270, 44, 12);
-    const recruitRifleManButton = new Button(580,  recruitRocketManButton.y - recruitRocketManButton.button.height - 4, recruitRifleMan, `Recruit rifleMan $${unitsProperties.RIFLEMAN.cost}`, 270, 44, 12);
+
+    const buildMinerButton = new Button(60, k.height() - 70, buildMiner, `Build miner $${buildingsProperties.MINER.cost}`, 90, 90, 11, true, 'minerB');
+
+    const buildCampButton = new Button(160, k.height() - 70, buildCamp, `Build camp $${buildingsProperties.CAMP.cost}`, 90, 90, 11, true, 'campB');
+    const buildTurretButton = new Button(260, k.height() - 70, buildTurret, '', 90, 90, 11, true, 'turretB');
+    const recruitRifleManButton = new Button(400,  k.height() - 70, recruitRifleMan, '', 90, 90, 12, true, 'rmB');
+    const recruitRocketManButton = new Button(500, k.height() - 70, recruitRocketMan, '', 90, 90, 12, true, 'rctmB');
+
+    // const buildCampButton = new Button(110, messages.pos.y  - 20, buildCamp, `Build camp $${buildingsProperties.CAMP.cost}`, 200, 27, 11);
+    // const buildMinerButton = new Button(110,  buildCampButton.y - buildCampButton.button.height - 4, buildMiner, `Build miner $${buildingsProperties.MINER.cost}`, 200, 27, 11);
+    // const buildTurretButton = new Button(110, buildMinerButton.y - buildMinerButton.button.height - 4, buildTurret, `Build turret $${buildingsProperties.TURRET.cost}`, 200, 27, 11);
+    // const recruitRocketManButton = new Button(580,  messages.pos.y - 26, recruitRocketMan, `Recruit rocketMan $${unitsProperties.ROCKETMAN.cost}`, 270, 44, 12);
+    // const recruitRifleManButton = new Button(580,  recruitRocketManButton.y - recruitRocketManButton.button.height - 4, recruitRifleMan, `Recruit rifleMan $${unitsProperties.RIFLEMAN.cost}`, 270, 44, 12);
+    
     
     buildMinerButton.button.clicks( async () => {
         await wait(0.1);
@@ -921,6 +935,73 @@ const mainScreen = scene('main', () => {
 
     });
 
+    const tipBox = add([
+        rect(320, 100),
+        origin('botleft'),
+        color(0,0,0, 0.8),
+        pos(0, 0),
+        layer('ui'),
+    ]);
+
+    const tip = add([
+        text('', 12, {
+            width: 320
+        }),
+        origin('botleft'),
+        color(1, 1, 1),
+        pos(0, 0),
+        layer('ui'),
+    ]);
+    
+    function showTip() {
+        tip.pos.x = mousePos('ui').x + 10;
+        tip.pos.y = mousePos('ui').y - 20;
+        tipBox.pos.x = mousePos('ui').x;
+        tipBox.pos.y = mousePos('ui').y;
+        tip.paused = false;
+        tip.hidden = false;
+        tipBox.paused = false;
+        tipBox.hidden = false;
+    }
+
+
+    action(() => {
+
+        if(buildCampButton.button.isHovered()){
+            tip.text = `Camp\n\nfor training basic\ninfantry.\n\nCost: $${buildingsProperties.CAMP.cost}`;
+            showTip();
+        }
+        else if(buildMinerButton.button.isHovered()){
+            tip.text = `Miner\n\nmines Bytecoins day \nand night.\n\nCost: $${buildingsProperties.MINER.cost}`;
+            showTip();
+        }
+        else if(buildTurretButton.button.isHovered()){
+            tip.text = `Turret\n\nusefull for self defence.\n\n\nCost: $${buildingsProperties.TURRET.cost}`;
+            showTip();
+        }
+        else if(recruitRifleManButton.button.isHovered()){
+            tip.text = `Rifleman\n\na man with a rifle.\n\n(camp required)\nCost: $${unitsProperties.RIFLEMAN.cost}`;
+            showTip();
+        }
+        else if(recruitRocketManButton.button.isHovered()){
+            tip.text = `Rocketman\n\nfires long ranged rockets.\n\n(camp required)\nCost: $${unitsProperties.ROCKETMAN.cost}`;
+            showTip();
+        }
+        else {
+            tip.paused = true;
+            tip.hidden = true;
+            tipBox.paused = true;
+            tipBox.hidden = true;
+        }
+
+    });
+
+
+
+
+
+
+
     ///////////////////////////////////////
     //
     //                  Overlaps ?
@@ -943,8 +1024,6 @@ const mainScreen = scene('main', () => {
     });
 
     overlaps('Killable', 'RocketExp', (thing, explosion) =>{
-        // thing.health -= rand(8, 14);
-        // if(thing.is('Unit')) thing.getShot(thing, rocket.source.parent);
         explosion.source.parent.getShot(thing, explosion.source.parent);
     });
 
@@ -1230,6 +1309,8 @@ const mainScreen = scene('main', () => {
     //                  AI Stuff
     //
     ///////////////////////////////////////
+    
+
     let spawning = false;
     let enemyCamps;
 
@@ -1355,7 +1436,7 @@ const mainScreen = scene('main', () => {
     
     let lost = false;
     let won = false;
-
+    
     action( async () => {
         
 
