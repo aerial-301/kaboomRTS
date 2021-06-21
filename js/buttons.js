@@ -2,7 +2,7 @@
 
 export default class Button {
 
-    constructor(x, y, act, t = 'Button', w = 90, h = 30, f_size = 12){
+    constructor(x, y, act, t = '', w = 90, h = 30, f_size = 12, noText = false, pic = ''){
 
         this.x = x;
         this.y = y;
@@ -11,11 +11,12 @@ export default class Button {
         this.w = w;
         this.h = h;
 
+
+
         this.button = add([
             rect(w, h ),
             pos(x, y),
-            // color(0.2, 0.3, 1),
-            color(0, 0.5, 0),
+            color(0, 0.5, 0,),
             origin('center'),
             layer('ui'),
             {
@@ -23,19 +24,32 @@ export default class Button {
             }
         ]);
 
-        this.text = add([
+        if(noText){
+            add([
+                sprite(pic),
+                origin('center'),
+                pos(x, y),
+                layer('ui'),
+            ]);
+        }
 
-            text(t, f_size, {
-                width: w,
-            }),
-            origin('center'),
-            pos(x, y),
-            layer('ui'),
+
+        else{
+
+            this.text = add([
+                
+                text(t, f_size, {
+                    width: w,
+                }),
+                origin('center'),
+                pos(x, y),
+                layer('ui'),
+                
+            ]);
             
-        ]);
-
+        }
     }
-
+        
     act(){
         this.act();
     }
